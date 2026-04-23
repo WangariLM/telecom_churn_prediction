@@ -12,18 +12,18 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 19,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
         "id": "paA0UT54DuWR",
-        "outputId": "28aa993e-303f-46b4-9a1f-4424aa2aef19"
+        "outputId": "aba1f08e-8459-42f2-c46c-7c665cf20643"
       },
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n"
           ]
@@ -41,7 +41,8 @@
         "\n",
         "# =============================================================================\n",
         "# MASTER SETUP CELL — RUN THIS FIRST EVERY SINGLE SESSION\n",
-        "# This cell mounts Drive, sets paths, and recreates all variables\n",
+        "# Mounts Drive, sets paths, recreates variables\n",
+        "# Heavy computation like GridSearchCV only runs if no saved model exists\n",
         "# =============================================================================\n",
         "\n",
         "# Step 1: Mount Drive\n",
@@ -51,6 +52,8 @@
         "# Step 2: Set up paths\n",
         "import sys\n",
         "import os\n",
+        "import joblib\n",
+        "import importlib\n",
         "\n",
         "PROJECT_PATH = '/content/drive/MyDrive/telecom_churn_prediction'\n",
         "SRC_PATH = os.path.join(PROJECT_PATH, 'src')\n",
@@ -59,84 +62,107 @@
         "    sys.path.insert(0, SRC_PATH)\n",
         "\n",
         "# Step 3: Import all modules\n",
-        "import importlib\n",
         "import config\n",
         "import data_loader\n",
         "import feature_engineering\n",
+        "import preprocessing\n",
+        "import train\n",
         "\n",
-        "# Reload to make sure we have the latest version of each module\n",
         "importlib.reload(config)\n",
         "importlib.reload(data_loader)\n",
         "importlib.reload(feature_engineering)\n",
+        "importlib.reload(preprocessing)\n",
+        "importlib.reload(train)\n",
         "\n",
-        "# Step 4: Recreate all key variables\n",
+        "# Step 4: Recreate data variables\n",
         "df_clean = data_loader.load_and_clean_data()\n",
         "\n",
-        "from feature_engineering import FeatureEngineeringTransformer\n",
-        "transformer = FeatureEngineeringTransformer()\n",
-        "df_engineered = transformer.fit_transform(df_clean)\n",
-        "\n",
-        "# Step 5: Confirm everything is ready\n",
-        "print(\"=\" * 50)\n",
-        "print(\"SESSION READY!\")\n",
-        "print(\"=\" * 50)\n",
-        "print(f\"PROJECT_PATH : {PROJECT_PATH}\")\n",
-        "print(f\"df_clean     : {df_clean.shape}\")\n",
-        "print(f\"df_engineered: {df_engineered.shape}\")\n",
-        "print(\"=\" * 50)\n",
-        "\n",
-        "#Step 6: Adding prepossessing\n",
-        "import preprocessing\n",
-        "importlib.reload(preprocessing)\n",
-        "\n",
+        "# Step 5: Recreate preprocessing variables\n",
         "X_train_processed, X_test_processed, y_train, y_test, pipeline = \\\n",
         "    preprocessing.run_preprocessing_pipeline(df_clean)\n",
         "\n",
+        "# Step 6: Load model from disk if it exists\n",
+        "# If it does not exist run training once and save it\n",
+        "MODEL_PATH = config.MODEL_PATH\n",
+        "\n",
+        "if os.path.exists(MODEL_PATH):\n",
+        "    # Model already trained and saved — just load it\n",
+        "    best_model = joblib.load(MODEL_PATH)\n",
+        "    grid_search = None\n",
+        "    print(\"Model loaded from disk — skipping GridSearchCV\")\n",
+        "else:\n",
+        "    # First time only — run GridSearchCV and save\n",
+        "    print(\"No saved model found — running GridSearchCV for the first time\")\n",
+        "    print(\"This will take a few minutes...\")\n",
+        "    best_model, grid_search = train.run_training_pipeline(\n",
+        "        X_train_processed,\n",
+        "        X_test_processed,\n",
+        "        y_train,\n",
+        "        y_test,\n",
+        "        pipeline\n",
+        "    )\n",
+        "    print(\"Model trained and saved — future sessions will load from disk\")\n",
+        "\n",
+        "# Step 7: Confirm everything is ready\n",
+        "print(\"\\n\" + \"=\" * 50)\n",
+        "print(\"SESSION READY!\")\n",
+        "print(\"=\" * 50)\n",
+        "print(f\"df_clean          : {df_clean.shape}\")\n",
         "print(f\"X_train_processed : {X_train_processed.shape}\")\n",
-        "print(f\"X_test_processed  : {X_test_processed.shape}\")"
+        "print(f\"X_test_processed  : {X_test_processed.shape}\")\n",
+        "print(f\"y_train           : {y_train.shape}\")\n",
+        "print(f\"y_test            : {y_test.shape}\")\n",
+        "print(f\"Model loaded      : {type(best_model).__name__}\")\n",
+        "print(\"=\" * 50)"
       ],
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "id": "-6QTRQKs9fcB",
-        "outputId": "139e25c7-5fe0-4d51-9309-07b6632951b6"
+        "id": "3SNzBDR6MWiR",
+        "outputId": "6ac3952c-e951-4e00-c431-282d6b087a07"
       },
-      "execution_count": 20,
+      "execution_count": 33,
       "outputs": [
         {
           "output_type": "stream",
           "name": "stdout",
           "text": [
             "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n",
+            "No saved model found — running GridSearchCV for the first time\n",
+            "This will take a few minutes...\n",
+            "Fitting 5 folds for each of 24 candidates, totalling 120 fits\n",
+            "Model trained and saved — future sessions will load from disk\n",
+            "\n",
             "==================================================\n",
             "SESSION READY!\n",
             "==================================================\n",
-            "PROJECT_PATH : /content/drive/MyDrive/telecom_churn_prediction\n",
-            "df_clean     : (7021, 20)\n",
-            "df_engineered: (7021, 28)\n",
-            "==================================================\n",
+            "df_clean          : (7021, 20)\n",
             "X_train_processed : (5616, 40)\n",
-            "X_test_processed  : (1405, 40)\n"
+            "X_test_processed  : (1405, 40)\n",
+            "y_train           : (5616,)\n",
+            "y_test            : (1405,)\n",
+            "Model loaded      : Pipeline\n",
+            "==================================================\n"
           ]
         }
       ]
     },
     {
       "cell_type": "markdown",
+      "metadata": {
+        "id": "jOxT1aqW_xxV"
+      },
       "source": [
         "Chapter 1\n",
         ".Creating all the necessary folders\n",
         ". Unzipping the dataset drom zip file into csv file and renaming it\n",
         ". First Look into the dataset"
-      ],
-      "metadata": {
-        "id": "jOxT1aqW_xxV"
-      }
+      ]
     },
     {
       "cell_type": "code",
-      "execution_count": 2,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -146,8 +172,8 @@
       },
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "Files in data folder:\n",
             "  Telco-Customer-Churn.zip\n",
@@ -171,6 +197,30 @@
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "K6CUxxe6bsho",
+        "outputId": "5f19759a-2437-4763-e149-c876f4fdbbdc"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/data\n",
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/notebooks\n",
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/src\n",
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/models\n",
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/reports/figures\n",
+            "Created: /content/drive/MyDrive/telecom_churn_prediction/tests\n",
+            "\n",
+            "Project structure created successfully!\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "# Define all folders needed\n",
@@ -190,44 +240,11 @@
         "    print(f\"Created: {folder_path}\")\n",
         "\n",
         "print(\"\\nProject structure created successfully!\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "K6CUxxe6bsho",
-        "outputId": "5f19759a-2437-4763-e149-c876f4fdbbdc"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/data\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/notebooks\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/src\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/models\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/reports/figures\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/tests\n",
-            "\n",
-            "Project structure created successfully!\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "\n",
-        "import os\n",
-        "\n",
-        "PROJECT_PATH = '/content/drive/MyDrive/telecom_churn_prediction'\n",
-        "\n",
-        "print(\"Folders found:\")\n",
-        "for item in sorted(os.listdir(PROJECT_PATH)):\n",
-        "    print(f\"  {item}\")"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -235,11 +252,10 @@
         "id": "gCT-d3pFX8QU",
         "outputId": "4ef34cf6-b463-4ec7-dcee-9f38bd58df4d"
       },
-      "execution_count": null,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "Folders found:\n",
             "  data\n",
@@ -250,10 +266,38 @@
             "  tests\n"
           ]
         }
+      ],
+      "source": [
+        "\n",
+        "import os\n",
+        "\n",
+        "PROJECT_PATH = '/content/drive/MyDrive/telecom_churn_prediction'\n",
+        "\n",
+        "print(\"Folders found:\")\n",
+        "for item in sorted(os.listdir(PROJECT_PATH)):\n",
+        "    print(f\"  {item}\")"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Ke632CJZX_Y-",
+        "outputId": "680027ac-7ea2-478d-d0a5-692eda351e84"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Files extracted:\n",
+            "  WA_Fn-UseC_-Telco-Customer-Churn.csv\n"
+          ]
+        }
+      ],
       "source": [
         "# Extracting the dataset from zip file\n",
         "import zipfile\n",
@@ -266,28 +310,27 @@
         "    print(\"Files extracted:\")\n",
         "    for file in zip_ref.namelist():\n",
         "        print(f\"  {file}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "Ke632CJZX_Y-",
-        "outputId": "680027ac-7ea2-478d-d0a5-692eda351e84"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Files extracted:\n",
-            "  WA_Fn-UseC_-Telco-Customer-Churn.csv\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "YCYwTxBjYp9-",
+        "outputId": "d5b08769-3a6e-4ee6-a51f-d07cc304bf0f"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "File renamed successfully to telco_churn.csv\n"
+          ]
+        }
+      ],
       "source": [
         "#Renaming the csv file\n",
         "import shutil\n",
@@ -305,40 +348,11 @@
         "    print(\"Files in data folder:\")\n",
         "    for file in os.listdir(data_path):\n",
         "        print(f\"  {file}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "YCYwTxBjYp9-",
-        "outputId": "d5b08769-3a6e-4ee6-a51f-d07cc304bf0f"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "File renamed successfully to telco_churn.csv\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "#Verifying if everything is in order\n",
-        "def show_project_structure(path, indent=0):\n",
-        "    \"\"\"Display project folder structure\"\"\"\n",
-        "    for item in sorted(os.listdir(path)):\n",
-        "        item_path = os.path.join(path, item)\n",
-        "        print(' ' * indent + '|-- ' + item)\n",
-        "        if os.path.isdir(item_path):\n",
-        "            show_project_structure(item_path, indent + 4)\n",
-        "\n",
-        "print(\"telecom-churn-prediction/\")\n",
-        "show_project_structure(PROJECT_PATH)"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -346,11 +360,10 @@
         "id": "FHY8sbfEZjLN",
         "outputId": "6230db91-ac5f-4c1d-f9d6-617204117cc2"
       },
-      "execution_count": null,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "telecom-churn-prediction/\n",
             "|-- data\n",
@@ -364,31 +377,24 @@
             "|-- tests\n"
           ]
         }
+      ],
+      "source": [
+        "#Verifying if everything is in order\n",
+        "def show_project_structure(path, indent=0):\n",
+        "    \"\"\"Display project folder structure\"\"\"\n",
+        "    for item in sorted(os.listdir(path)):\n",
+        "        item_path = os.path.join(path, item)\n",
+        "        print(' ' * indent + '|-- ' + item)\n",
+        "        if os.path.isdir(item_path):\n",
+        "            show_project_structure(item_path, indent + 4)\n",
+        "\n",
+        "print(\"telecom-churn-prediction/\")\n",
+        "show_project_structure(PROJECT_PATH)"
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "#A look into the data\n",
-        "import pandas as pd\n",
-        "\n",
-        "# Load the data\n",
-        "df = pd.read_csv(new_name)\n",
-        "\n",
-        "# Basic information\n",
-        "print(\"Shape of dataset:\")\n",
-        "print(f\"  {df.shape[0]} rows (customers)\")\n",
-        "print(f\"  {df.shape[1]} columns (features)\")\n",
-        "\n",
-        "print(\"\\nFirst 5 rows:\")\n",
-        "display(df.head())\n",
-        "\n",
-        "print(\"\\nColumn names and data types:\")\n",
-        "print(df.dtypes)\n",
-        "\n",
-        "print(\"\\nBasic statistics:\")\n",
-        "display(df.describe())"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/",
@@ -398,11 +404,10 @@
         "id": "Eddf5NV0Y7vB",
         "outputId": "1df8670c-3c83-4d9d-ca06-cf2835fe63c9"
       },
-      "execution_count": null,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "Shape of dataset:\n",
             "  7043 rows (customers)\n",
@@ -412,39 +417,10 @@
           ]
         },
         {
-          "output_type": "display_data",
           "data": {
-            "text/plain": [
-              "   customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
-              "0  7590-VHVEG  Female              0     Yes         No       1           No   \n",
-              "1  5575-GNVDE    Male              0      No         No      34          Yes   \n",
-              "2  3668-QPYBK    Male              0      No         No       2          Yes   \n",
-              "3  7795-CFOCW    Male              0      No         No      45           No   \n",
-              "4  9237-HQITU  Female              0      No         No       2          Yes   \n",
-              "\n",
-              "      MultipleLines InternetService OnlineSecurity  ... DeviceProtection  \\\n",
-              "0  No phone service             DSL             No  ...               No   \n",
-              "1                No             DSL            Yes  ...              Yes   \n",
-              "2                No             DSL            Yes  ...               No   \n",
-              "3  No phone service             DSL            Yes  ...              Yes   \n",
-              "4                No     Fiber optic             No  ...               No   \n",
-              "\n",
-              "  TechSupport StreamingTV StreamingMovies        Contract PaperlessBilling  \\\n",
-              "0          No          No              No  Month-to-month              Yes   \n",
-              "1          No          No              No        One year               No   \n",
-              "2          No          No              No  Month-to-month              Yes   \n",
-              "3         Yes          No              No        One year               No   \n",
-              "4          No          No              No  Month-to-month              Yes   \n",
-              "\n",
-              "               PaymentMethod MonthlyCharges  TotalCharges Churn  \n",
-              "0           Electronic check          29.85         29.85    No  \n",
-              "1               Mailed check          56.95        1889.5    No  \n",
-              "2               Mailed check          53.85        108.15   Yes  \n",
-              "3  Bank transfer (automatic)          42.30       1840.75    No  \n",
-              "4           Electronic check          70.70        151.65   Yes  \n",
-              "\n",
-              "[5 rows x 21 columns]"
-            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe"
+            },
             "text/html": [
               "\n",
               "  <div id=\"df-699e7072-3a66-4520-8176-ee1dcfe293e0\" class=\"colab-df-container\">\n",
@@ -697,15 +673,44 @@
               "    </div>\n",
               "  </div>\n"
             ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe"
-            }
+            "text/plain": [
+              "   customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
+              "0  7590-VHVEG  Female              0     Yes         No       1           No   \n",
+              "1  5575-GNVDE    Male              0      No         No      34          Yes   \n",
+              "2  3668-QPYBK    Male              0      No         No       2          Yes   \n",
+              "3  7795-CFOCW    Male              0      No         No      45           No   \n",
+              "4  9237-HQITU  Female              0      No         No       2          Yes   \n",
+              "\n",
+              "      MultipleLines InternetService OnlineSecurity  ... DeviceProtection  \\\n",
+              "0  No phone service             DSL             No  ...               No   \n",
+              "1                No             DSL            Yes  ...              Yes   \n",
+              "2                No             DSL            Yes  ...               No   \n",
+              "3  No phone service             DSL            Yes  ...              Yes   \n",
+              "4                No     Fiber optic             No  ...               No   \n",
+              "\n",
+              "  TechSupport StreamingTV StreamingMovies        Contract PaperlessBilling  \\\n",
+              "0          No          No              No  Month-to-month              Yes   \n",
+              "1          No          No              No        One year               No   \n",
+              "2          No          No              No  Month-to-month              Yes   \n",
+              "3         Yes          No              No        One year               No   \n",
+              "4          No          No              No  Month-to-month              Yes   \n",
+              "\n",
+              "               PaymentMethod MonthlyCharges  TotalCharges Churn  \n",
+              "0           Electronic check          29.85         29.85    No  \n",
+              "1               Mailed check          56.95        1889.5    No  \n",
+              "2               Mailed check          53.85        108.15   Yes  \n",
+              "3  Bank transfer (automatic)          42.30       1840.75    No  \n",
+              "4           Electronic check          70.70        151.65   Yes  \n",
+              "\n",
+              "[5 rows x 21 columns]"
+            ]
           },
-          "metadata": {}
+          "metadata": {},
+          "output_type": "display_data"
         },
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "Column names and data types:\n",
@@ -736,19 +741,11 @@
           ]
         },
         {
-          "output_type": "display_data",
           "data": {
-            "text/plain": [
-              "       SeniorCitizen       tenure  MonthlyCharges\n",
-              "count    7043.000000  7043.000000     7043.000000\n",
-              "mean        0.162147    32.371149       64.761692\n",
-              "std         0.368612    24.559481       30.090047\n",
-              "min         0.000000     0.000000       18.250000\n",
-              "25%         0.000000     9.000000       35.500000\n",
-              "50%         0.000000    29.000000       70.350000\n",
-              "75%         0.000000    55.000000       89.850000\n",
-              "max         1.000000    72.000000      118.750000"
-            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "summary": "{\n  \"name\": \"display(df\",\n  \"rows\": 8,\n  \"fields\": [\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2489.9992387084,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          0.1621468124378816,\n          1.0,\n          0.36861160561002687\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2478.9752758409018,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          32.37114865824223,\n          29.0,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2468.7047672837775,\n        \"min\": 18.25,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          64.76169246059918,\n          70.35,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}",
+              "type": "dataframe"
+            },
             "text/html": [
               "\n",
               "  <div id=\"df-cdeb19b9-017b-4f77-ae95-83640628fc8b\" class=\"colab-df-container\">\n",
@@ -910,26 +907,73 @@
               "    </div>\n",
               "  </div>\n"
             ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe",
-              "summary": "{\n  \"name\": \"display(df\",\n  \"rows\": 8,\n  \"fields\": [\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2489.9992387084,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          0.1621468124378816,\n          1.0,\n          0.36861160561002687\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2478.9752758409018,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          32.37114865824223,\n          29.0,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2468.7047672837775,\n        \"min\": 18.25,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          64.76169246059918,\n          70.35,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
-            }
+            "text/plain": [
+              "       SeniorCitizen       tenure  MonthlyCharges\n",
+              "count    7043.000000  7043.000000     7043.000000\n",
+              "mean        0.162147    32.371149       64.761692\n",
+              "std         0.368612    24.559481       30.090047\n",
+              "min         0.000000     0.000000       18.250000\n",
+              "25%         0.000000     9.000000       35.500000\n",
+              "50%         0.000000    29.000000       70.350000\n",
+              "75%         0.000000    55.000000       89.850000\n",
+              "max         1.000000    72.000000      118.750000"
+            ]
           },
-          "metadata": {}
+          "metadata": {},
+          "output_type": "display_data"
         }
+      ],
+      "source": [
+        "#A look into the data\n",
+        "import pandas as pd\n",
+        "\n",
+        "# Load the data\n",
+        "df = pd.read_csv(new_name)\n",
+        "\n",
+        "# Basic information\n",
+        "print(\"Shape of dataset:\")\n",
+        "print(f\"  {df.shape[0]} rows (customers)\")\n",
+        "print(f\"  {df.shape[1]} columns (features)\")\n",
+        "\n",
+        "print(\"\\nFirst 5 rows:\")\n",
+        "display(df.head())\n",
+        "\n",
+        "print(\"\\nColumn names and data types:\")\n",
+        "print(df.dtypes)\n",
+        "\n",
+        "print(\"\\nBasic statistics:\")\n",
+        "display(df.describe())"
       ]
     },
     {
       "cell_type": "markdown",
-      "source": [
-        "Configuration"
-      ],
       "metadata": {
         "id": "eODQaOUl5GSm"
-      }
+      },
+      "source": [
+        "Configuration"
+      ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "YGBiKTS-ZQMu",
+        "outputId": "3b491bd5-f4f2-415b-b3d4-8d23271f65f4"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "config.py written successfully to:\n",
+            "  /content/drive/MyDrive/telecom_churn_prediction/src/config.py\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "\n",
@@ -1148,34 +1192,11 @@
         "\n",
         "print(f\"config.py written successfully to:\")\n",
         "print(f\"  {config_path}\")"
-      ],
-      "metadata": {
-        "id": "YGBiKTS-ZQMu",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "outputId": "3b491bd5-f4f2-415b-b3d4-8d23271f65f4"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "config.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/config.py\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "\n",
-        "# Read and display the file we just wrote\n",
-        "with open(config_path, 'r') as f:\n",
-        "    print(f.read())"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -1183,11 +1204,10 @@
         "id": "w4rQUsoO5V3z",
         "outputId": "48de8d8f-d2ea-42f4-d4b9-bc8b48e03041"
       },
-      "execution_count": null,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "# =============================================================================\n",
@@ -1392,10 +1412,41 @@
             "\n"
           ]
         }
+      ],
+      "source": [
+        "\n",
+        "# Read and display the file we just wrote\n",
+        "with open(config_path, 'r') as f:\n",
+        "    print(f.read())"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "6FQuArSx5cVz",
+        "outputId": "27bf5719-36be-4119-9a82-0d25e621ee9e"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Verifying config values:\n",
+            "  TARGET_COLUMN: Churn\n",
+            "  TEST_SIZE: 0.2\n",
+            "  CV_FOLDS: 5\n",
+            "  RANDOM_SEED: 42\n",
+            "  NUMERICAL_FEATURES: ['tenure', 'MonthlyCharges', 'TotalCharges']\n",
+            "  SCORING_METRIC: roc_auc\n",
+            "\n",
+            "config.py imported successfully!\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "import sys\n",
@@ -1415,44 +1466,22 @@
         "print(f\"  NUMERICAL_FEATURES: {config.NUMERICAL_FEATURES}\")\n",
         "print(f\"  SCORING_METRIC: {config.SCORING_METRIC}\")\n",
         "print(f\"\\nconfig.py imported successfully!\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "6FQuArSx5cVz",
-        "outputId": "27bf5719-36be-4119-9a82-0d25e621ee9e"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Verifying config values:\n",
-            "  TARGET_COLUMN: Churn\n",
-            "  TEST_SIZE: 0.2\n",
-            "  CV_FOLDS: 5\n",
-            "  RANDOM_SEED: 42\n",
-            "  NUMERICAL_FEATURES: ['tenure', 'MonthlyCharges', 'TotalCharges']\n",
-            "  SCORING_METRIC: roc_auc\n",
-            "\n",
-            "config.py imported successfully!\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "markdown",
-      "source": [
-        "Creating the data_loader.py"
-      ],
       "metadata": {
         "id": "xWBHV0tv-uMC"
-      }
+      },
+      "source": [
+        "Creating the data_loader.py"
+      ]
     },
     {
       "cell_type": "markdown",
+      "metadata": {
+        "id": "k2Dc5PQk-b-a"
+      },
       "source": [
         "This file is responsible for one thing only ie loading the raw CSV and returning a clean dataframe ready for feature engineering. It does not do any feature engineering or preprocessing. Just loading and basic cleaning.\n",
         "Specifically it will:\n",
@@ -1461,13 +1490,28 @@
         "3. Fix TotalCharges from string to float\n",
         "4. Convert Churn from Yes/No to 1/0\n",
         "5. Log every step so we can see exactly what is happening"
-      ],
-      "metadata": {
-        "id": "k2Dc5PQk-b-a"
-      }
+      ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "btxtp-51-TLI",
+        "outputId": "de39dc10-7501-412d-cbde-0a2ca4791534"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "data_loader.py written successfully to:\n",
+            "  /content/drive/MyDrive/telecom_churn_prediction/src/data_loader.py\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "# =============================================================================\n",
@@ -1736,47 +1780,11 @@
         "\n",
         "print(f\"data_loader.py written successfully to:\")\n",
         "print(f\"  {data_loader_path}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "btxtp-51-TLI",
-        "outputId": "de39dc10-7501-412d-cbde-0a2ca4791534"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "data_loader.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/data_loader.py\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "# Verify if the data loader works\n",
-        "# Import and test data_loader\n",
-        "import importlib\n",
-        "import data_loader\n",
-        "importlib.reload(data_loader)\n",
-        "\n",
-        "# Run the full loading pipeline\n",
-        "df_clean = data_loader.load_and_clean_data()\n",
-        "\n",
-        "# Show the result\n",
-        "print(\"\\nCleaned dataframe shape:\", df_clean.shape)\n",
-        "print(\"\\nData types after cleaning:\")\n",
-        "print(df_clean.dtypes)\n",
-        "print(\"\\nFirst 5 rows:\")\n",
-        "display(df_clean.head())\n",
-        "print(\"\\nChurn value counts:\")\n",
-        "print(df_clean['Churn'].value_counts())"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/",
@@ -1785,18 +1793,17 @@
         "id": "zOfdc32aAgXO",
         "outputId": "da0fff24-83b8-49de-cf96-4ea8ec56b6f9"
       },
-      "execution_count": null,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stderr",
+          "output_type": "stream",
           "text": [
             "WARNING:data_loader:Found 22 duplicate rows\n"
           ]
         },
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "Cleaned dataframe shape: (7043, 20)\n",
@@ -1828,44 +1835,11 @@
           ]
         },
         {
-          "output_type": "display_data",
           "data": {
-            "text/plain": [
-              "   gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
-              "0  Female              0     Yes         No       1           No   \n",
-              "1    Male              0      No         No      34          Yes   \n",
-              "2    Male              0      No         No       2          Yes   \n",
-              "3    Male              0      No         No      45           No   \n",
-              "4  Female              0      No         No       2          Yes   \n",
-              "\n",
-              "      MultipleLines InternetService OnlineSecurity OnlineBackup  \\\n",
-              "0  No phone service             DSL             No          Yes   \n",
-              "1                No             DSL            Yes           No   \n",
-              "2                No             DSL            Yes          Yes   \n",
-              "3  No phone service             DSL            Yes           No   \n",
-              "4                No     Fiber optic             No           No   \n",
-              "\n",
-              "  DeviceProtection TechSupport StreamingTV StreamingMovies        Contract  \\\n",
-              "0               No          No          No              No  Month-to-month   \n",
-              "1              Yes          No          No              No        One year   \n",
-              "2               No          No          No              No  Month-to-month   \n",
-              "3              Yes         Yes          No              No        One year   \n",
-              "4               No          No          No              No  Month-to-month   \n",
-              "\n",
-              "  PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges  \\\n",
-              "0              Yes           Electronic check           29.85         29.85   \n",
-              "1               No               Mailed check           56.95       1889.50   \n",
-              "2              Yes               Mailed check           53.85        108.15   \n",
-              "3               No  Bank transfer (automatic)           42.30       1840.75   \n",
-              "4              Yes           Electronic check           70.70        151.65   \n",
-              "\n",
-              "   Churn  \n",
-              "0      0  \n",
-              "1      0  \n",
-              "2      1  \n",
-              "3      0  \n",
-              "4      1  "
-            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "summary": "{\n  \"name\": \"print(df_clean['Churn']\",\n  \"rows\": 5,\n  \"fields\": [\n    {\n      \"column\": \"gender\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Male\",\n          \"Female\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Partner\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Dependents\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 21,\n        \"min\": 1,\n        \"max\": 45,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          34\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PhoneService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MultipleLines\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"InternetService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Fiber optic\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineSecurity\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineBackup\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"DeviceProtection\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TechSupport\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingTV\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingMovies\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Contract\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"One year\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaperlessBilling\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaymentMethod\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Electronic check\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 15.445573799635934,\n        \"min\": 29.85,\n        \"max\": 70.7,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          56.95\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TotalCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 969.8243111512518,\n        \"min\": 29.85,\n        \"max\": 1889.5,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          1889.5\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Churn\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          1\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}",
+              "type": "dataframe"
+            },
             "text/html": [
               "\n",
               "  <div id=\"df-22e557f2-459c-4248-8505-0a34b9015fba\" class=\"colab-df-container\">\n",
@@ -2111,16 +2085,49 @@
               "    </div>\n",
               "  </div>\n"
             ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe",
-              "summary": "{\n  \"name\": \"print(df_clean['Churn']\",\n  \"rows\": 5,\n  \"fields\": [\n    {\n      \"column\": \"gender\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Male\",\n          \"Female\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Partner\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Dependents\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 21,\n        \"min\": 1,\n        \"max\": 45,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          34\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PhoneService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MultipleLines\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"InternetService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Fiber optic\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineSecurity\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineBackup\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"DeviceProtection\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TechSupport\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingTV\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingMovies\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Contract\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"One year\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaperlessBilling\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaymentMethod\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Electronic check\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 15.445573799635934,\n        \"min\": 29.85,\n        \"max\": 70.7,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          56.95\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TotalCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 969.8243111512518,\n        \"min\": 29.85,\n        \"max\": 1889.5,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          1889.5\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Churn\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          1\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
-            }
+            "text/plain": [
+              "   gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
+              "0  Female              0     Yes         No       1           No   \n",
+              "1    Male              0      No         No      34          Yes   \n",
+              "2    Male              0      No         No       2          Yes   \n",
+              "3    Male              0      No         No      45           No   \n",
+              "4  Female              0      No         No       2          Yes   \n",
+              "\n",
+              "      MultipleLines InternetService OnlineSecurity OnlineBackup  \\\n",
+              "0  No phone service             DSL             No          Yes   \n",
+              "1                No             DSL            Yes           No   \n",
+              "2                No             DSL            Yes          Yes   \n",
+              "3  No phone service             DSL            Yes           No   \n",
+              "4                No     Fiber optic             No           No   \n",
+              "\n",
+              "  DeviceProtection TechSupport StreamingTV StreamingMovies        Contract  \\\n",
+              "0               No          No          No              No  Month-to-month   \n",
+              "1              Yes          No          No              No        One year   \n",
+              "2               No          No          No              No  Month-to-month   \n",
+              "3              Yes         Yes          No              No        One year   \n",
+              "4               No          No          No              No  Month-to-month   \n",
+              "\n",
+              "  PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges  \\\n",
+              "0              Yes           Electronic check           29.85         29.85   \n",
+              "1               No               Mailed check           56.95       1889.50   \n",
+              "2              Yes               Mailed check           53.85        108.15   \n",
+              "3               No  Bank transfer (automatic)           42.30       1840.75   \n",
+              "4              Yes           Electronic check           70.70        151.65   \n",
+              "\n",
+              "   Churn  \n",
+              "0      0  \n",
+              "1      0  \n",
+              "2      1  \n",
+              "3      0  \n",
+              "4      1  "
+            ]
           },
-          "metadata": {}
+          "metadata": {},
+          "output_type": "display_data"
         },
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "Churn value counts:\n",
@@ -2130,10 +2137,46 @@
             "Name: count, dtype: int64\n"
           ]
         }
+      ],
+      "source": [
+        "# Verify if the data loader works\n",
+        "# Import and test data_loader\n",
+        "import importlib\n",
+        "import data_loader\n",
+        "importlib.reload(data_loader)\n",
+        "\n",
+        "# Run the full loading pipeline\n",
+        "df_clean = data_loader.load_and_clean_data()\n",
+        "\n",
+        "# Show the result\n",
+        "print(\"\\nCleaned dataframe shape:\", df_clean.shape)\n",
+        "print(\"\\nData types after cleaning:\")\n",
+        "print(df_clean.dtypes)\n",
+        "print(\"\\nFirst 5 rows:\")\n",
+        "display(df_clean.head())\n",
+        "print(\"\\nChurn value counts:\")\n",
+        "print(df_clean['Churn'].value_counts())"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4GuTGBkbCQRW",
+        "outputId": "4a4ea55b-6e51-4408-963e-e48b748cf978"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "data_loader.py updated successfully!\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "data_loader_content_v2 = '''\n",
@@ -2426,27 +2469,34 @@
         "    f.write(data_loader_content_v2)\n",
         "\n",
         "print(\"data_loader.py updated successfully!\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "4GuTGBkbCQRW",
-        "outputId": "4a4ea55b-6e51-4408-963e-e48b748cf978"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "data_loader.py updated successfully!\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HrfWXRK3CmgE",
+        "outputId": "9ec88947-56f3-4776-d375-22bd16fa3a76"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "\n",
+            "Final shape: (7021, 20)\n",
+            "\n",
+            "Churn value counts:\n",
+            "Churn\n",
+            "0    5164\n",
+            "1    1857\n",
+            "Name: count, dtype: int64\n"
+          ]
+        }
+      ],
       "source": [
         "#Verify the fix to remove duplicates\n",
         "# Reload the updated module\n",
@@ -2460,34 +2510,15 @@
         "print(\"\\nFinal shape:\", df_clean.shape)\n",
         "print(\"\\nChurn value counts:\")\n",
         "print(df_clean['Churn'].value_counts())"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "HrfWXRK3CmgE",
-        "outputId": "9ec88947-56f3-4776-d375-22bd16fa3a76"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "Final shape: (7021, 20)\n",
-            "\n",
-            "Churn value counts:\n",
-            "Churn\n",
-            "0    5164\n",
-            "1    1857\n",
-            "Name: count, dtype: int64\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "KcTpZIR47Fx3"
+      },
+      "outputs": [],
       "source": [
         "\n",
         "# =============================================================================\n",
@@ -2495,15 +2526,28 @@
         "# Writes feature_engineering.py to src/\n",
         "# Only run once — file stays in Drive permanently\n",
         "# ============================================================================="
-      ],
-      "metadata": {
-        "id": "KcTpZIR47Fx3"
-      },
-      "execution_count": 3,
-      "outputs": []
+      ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "UwqVSIlD7Hjm",
+        "outputId": "58470a8c-ba23-45b5-a24b-e7e479908be3"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "feature_engineering.py written successfully to:\n",
+            "  /content/drive/MyDrive/telecom_churn_prediction/src/feature_engineering.py\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "feature_engineering_content = '''\n",
@@ -3069,56 +3113,11 @@
         "\n",
         "print(f\"feature_engineering.py written successfully to:\")\n",
         "print(f\"  {feature_engineering_path}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "UwqVSIlD7Hjm",
-        "outputId": "58470a8c-ba23-45b5-a24b-e7e479908be3"
-      },
-      "execution_count": 4,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "feature_engineering.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/feature_engineering.py\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "#Verifying if feature engineering works\n",
-        "import importlib\n",
-        "import feature_engineering\n",
-        "importlib.reload(feature_engineering)\n",
-        "\n",
-        "from feature_engineering import FeatureEngineeringTransformer\n",
-        "\n",
-        "# Use the clean dataframe from data_loader\n",
-        "transformer = FeatureEngineeringTransformer()\n",
-        "df_engineered = transformer.fit_transform(df_clean)\n",
-        "\n",
-        "# Show results\n",
-        "print(\"Shape before engineering:\", df_clean.shape)\n",
-        "print(\"Shape after engineering: \", df_engineered.shape)\n",
-        "print(f\"\\nNew features added: {df_engineered.shape[1] - df_clean.shape[1]}\")\n",
-        "\n",
-        "print(\"\\nNew columns created:\")\n",
-        "new_cols = [col for col in df_engineered.columns if col not in df_clean.columns]\n",
-        "for col in new_cols:\n",
-        "    print(f\"  {col}\")\n",
-        "\n",
-        "print(\"\\nSample of engineered features for first 5 customers:\")\n",
-        "display(df_engineered[new_cols].head())\n",
-        "\n",
-        "print(\"\\nNo missing values in engineered features:\")\n",
-        "print(df_engineered[new_cols].isnull().sum())"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/",
@@ -3127,11 +3126,10 @@
         "id": "b6oGIo237T8j",
         "outputId": "06c3ed44-8d17-44e5-96c7-ee293fd6952d"
       },
-      "execution_count": 11,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "Shape before engineering: (7021, 20)\n",
             "Shape after engineering:  (7021, 28)\n",
@@ -3152,30 +3150,11 @@
           ]
         },
         {
-          "output_type": "display_data",
           "data": {
-            "text/plain": [
-              "   TenureGroup  TotalServices  SpendPerService  ChargesRatio  \\\n",
-              "0          New              2         9.950000      0.967585   \n",
-              "1  Established              4        11.390000      0.030124   \n",
-              "2          New              4        10.770000      0.493358   \n",
-              "3  Established              4         8.460000      0.022967   \n",
-              "4          New              2        23.566667      0.463151   \n",
-              "\n",
-              "   HasPremiumServices  IsAutomatedPayment  ContractRiskScore  \\\n",
-              "0                   1                   0                  3   \n",
-              "1                   1                   0                  2   \n",
-              "2                   1                   0                  3   \n",
-              "3                   1                   1                  2   \n",
-              "4                   0                   0                  3   \n",
-              "\n",
-              "   TenureContractInteraction  \n",
-              "0                          3  \n",
-              "1                         68  \n",
-              "2                          6  \n",
-              "3                         90  \n",
-              "4                          6  "
-            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "summary": "{\n  \"name\": \"print(df_engineered[new_cols]\",\n  \"rows\": 5,\n  \"fields\": [\n    {\n      \"column\": \"TenureGroup\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Established\",\n          \"New\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TotalServices\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 1,\n        \"min\": 2,\n        \"max\": 4,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          4,\n          2\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"SpendPerService\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 6.102959846573537,\n        \"min\": 8.459999999999999,\n        \"max\": 23.566666666666666,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          11.39,\n          23.566666666666666\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ChargesRatio\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.391699549950757,\n        \"min\": 0.022967286548119994,\n        \"max\": 0.9675850891410048,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          0.03012430573922243,\n          0.46315099901735995\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"HasPremiumServices\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          0,\n          1\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"IsAutomatedPayment\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          1,\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ContractRiskScore\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 2,\n        \"max\": 3,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          2,\n          3\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TenureContractInteraction\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 41,\n        \"min\": 3,\n        \"max\": 90,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          68,\n          90\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}",
+              "type": "dataframe"
+            },
             "text/html": [
               "\n",
               "  <div id=\"df-aa943317-dad8-4958-9543-0edd90f3e32b\" class=\"colab-df-container\">\n",
@@ -3349,16 +3328,35 @@
               "    </div>\n",
               "  </div>\n"
             ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe",
-              "summary": "{\n  \"name\": \"print(df_engineered[new_cols]\",\n  \"rows\": 5,\n  \"fields\": [\n    {\n      \"column\": \"TenureGroup\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Established\",\n          \"New\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TotalServices\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 1,\n        \"min\": 2,\n        \"max\": 4,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          4,\n          2\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"SpendPerService\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 6.102959846573537,\n        \"min\": 8.459999999999999,\n        \"max\": 23.566666666666666,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          11.39,\n          23.566666666666666\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ChargesRatio\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.391699549950757,\n        \"min\": 0.022967286548119994,\n        \"max\": 0.9675850891410048,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          0.03012430573922243,\n          0.46315099901735995\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"HasPremiumServices\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          0,\n          1\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"IsAutomatedPayment\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          1,\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ContractRiskScore\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 2,\n        \"max\": 3,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          2,\n          3\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TenureContractInteraction\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 41,\n        \"min\": 3,\n        \"max\": 90,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          68,\n          90\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
-            }
+            "text/plain": [
+              "   TenureGroup  TotalServices  SpendPerService  ChargesRatio  \\\n",
+              "0          New              2         9.950000      0.967585   \n",
+              "1  Established              4        11.390000      0.030124   \n",
+              "2          New              4        10.770000      0.493358   \n",
+              "3  Established              4         8.460000      0.022967   \n",
+              "4          New              2        23.566667      0.463151   \n",
+              "\n",
+              "   HasPremiumServices  IsAutomatedPayment  ContractRiskScore  \\\n",
+              "0                   1                   0                  3   \n",
+              "1                   1                   0                  2   \n",
+              "2                   1                   0                  3   \n",
+              "3                   1                   1                  2   \n",
+              "4                   0                   0                  3   \n",
+              "\n",
+              "   TenureContractInteraction  \n",
+              "0                          3  \n",
+              "1                         68  \n",
+              "2                          6  \n",
+              "3                         90  \n",
+              "4                          6  "
+            ]
           },
-          "metadata": {}
+          "metadata": {},
+          "output_type": "display_data"
         },
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "No missing values in engineered features:\n",
@@ -3373,10 +3371,43 @@
             "dtype: int64\n"
           ]
         }
+      ],
+      "source": [
+        "#Verifying if feature engineering works\n",
+        "import importlib\n",
+        "import feature_engineering\n",
+        "importlib.reload(feature_engineering)\n",
+        "\n",
+        "from feature_engineering import FeatureEngineeringTransformer\n",
+        "\n",
+        "# Use the clean dataframe from data_loader\n",
+        "transformer = FeatureEngineeringTransformer()\n",
+        "df_engineered = transformer.fit_transform(df_clean)\n",
+        "\n",
+        "# Show results\n",
+        "print(\"Shape before engineering:\", df_clean.shape)\n",
+        "print(\"Shape after engineering: \", df_engineered.shape)\n",
+        "print(f\"\\nNew features added: {df_engineered.shape[1] - df_clean.shape[1]}\")\n",
+        "\n",
+        "print(\"\\nNew columns created:\")\n",
+        "new_cols = [col for col in df_engineered.columns if col not in df_clean.columns]\n",
+        "for col in new_cols:\n",
+        "    print(f\"  {col}\")\n",
+        "\n",
+        "print(\"\\nSample of engineered features for first 5 customers:\")\n",
+        "display(df_engineered[new_cols].head())\n",
+        "\n",
+        "print(\"\\nNo missing values in engineered features:\")\n",
+        "print(df_engineered[new_cols].isnull().sum())"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "TDvmJQSB9b_I"
+      },
+      "outputs": [],
       "source": [
         "\n",
         "# =============================================================================\n",
@@ -3384,15 +3415,28 @@
         "# Writes preprocessing.py to src/\n",
         "# Only run once — file stays in Drive permanently\n",
         "# ============================================================================="
-      ],
-      "metadata": {
-        "id": "TDvmJQSB9b_I"
-      },
-      "execution_count": 15,
-      "outputs": []
+      ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "n9NX7E49AYnn",
+        "outputId": "d203c824-c3dd-43ee-e7d5-03fc94b443fa"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "preprocessing.py written successfully to:\n",
+            "  /content/drive/MyDrive/telecom_churn_prediction/src/preprocessing.py\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "preprocessing_content = '''\n",
@@ -3802,55 +3846,11 @@
         "\n",
         "print(f\"preprocessing.py written successfully to:\")\n",
         "print(f\"  {preprocessing_path}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "n9NX7E49AYnn",
-        "outputId": "d203c824-c3dd-43ee-e7d5-03fc94b443fa"
-      },
-      "execution_count": 16,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "preprocessing.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/preprocessing.py\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "#Verify that preprocessing is working\n",
-        "import importlib\n",
-        "import preprocessing\n",
-        "importlib.reload(preprocessing)\n",
-        "\n",
-        "# Run the full preprocessing pipeline\n",
-        "X_train_processed, X_test_processed, y_train, y_test, pipeline = \\\n",
-        "    preprocessing.run_preprocessing_pipeline(df_clean)\n",
-        "\n",
-        "# Show results\n",
-        "print(\"\\nPreprocessing Results:\")\n",
-        "print(f\"  X_train_processed : {X_train_processed.shape}\")\n",
-        "print(f\"  X_test_processed  : {X_test_processed.shape}\")\n",
-        "print(f\"  y_train           : {y_train.shape}\")\n",
-        "print(f\"  y_test            : {y_test.shape}\")\n",
-        "\n",
-        "print(f\"\\nTraining churn rate : {y_train.mean():.2%}\")\n",
-        "print(f\"Test churn rate     : {y_test.mean():.2%}\")\n",
-        "\n",
-        "print(\"\\nFirst 3 rows of processed training data:\")\n",
-        "print(X_train_processed[:3])\n",
-        "\n",
-        "print(\"\\nPipeline steps:\")\n",
-        "for step_name, step in pipeline.steps:\n",
-        "    print(f\"  {step_name}: {type(step).__name__}\")"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -3858,11 +3858,10 @@
         "id": "S3SWbwekA1JR",
         "outputId": "c4363933-1582-4433-b075-803a934c3cc5"
       },
-      "execution_count": 17,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "\n",
             "Preprocessing Results:\n",
@@ -3902,10 +3901,42 @@
             "  preprocessor: ColumnTransformer\n"
           ]
         }
+      ],
+      "source": [
+        "#Verify that preprocessing is working\n",
+        "import importlib\n",
+        "import preprocessing\n",
+        "importlib.reload(preprocessing)\n",
+        "\n",
+        "# Run the full preprocessing pipeline\n",
+        "X_train_processed, X_test_processed, y_train, y_test, pipeline = \\\n",
+        "    preprocessing.run_preprocessing_pipeline(df_clean)\n",
+        "\n",
+        "# Show results\n",
+        "print(\"\\nPreprocessing Results:\")\n",
+        "print(f\"  X_train_processed : {X_train_processed.shape}\")\n",
+        "print(f\"  X_test_processed  : {X_test_processed.shape}\")\n",
+        "print(f\"  y_train           : {y_train.shape}\")\n",
+        "print(f\"  y_test            : {y_test.shape}\")\n",
+        "\n",
+        "print(f\"\\nTraining churn rate : {y_train.mean():.2%}\")\n",
+        "print(f\"Test churn rate     : {y_test.mean():.2%}\")\n",
+        "\n",
+        "print(\"\\nFirst 3 rows of processed training data:\")\n",
+        "print(X_train_processed[:3])\n",
+        "\n",
+        "print(\"\\nPipeline steps:\")\n",
+        "for step_name, step in pipeline.steps:\n",
+        "    print(f\"  {step_name}: {type(step).__name__}\")"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "yK4MqOYRA8SP"
+      },
+      "outputs": [],
       "source": [
         "\n",
         "# =============================================================================\n",
@@ -3913,15 +3944,28 @@
         "# Writes train.py to src/\n",
         "# Only run once — file stays in Drive permanently\n",
         "# ============================================================================="
-      ],
-      "metadata": {
-        "id": "yK4MqOYRA8SP"
-      },
-      "execution_count": 21,
-      "outputs": []
+      ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "v3ffx3oTENpx",
+        "outputId": "c2e2bb5c-7dda-420f-9b3c-0a1829ac7e0b"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "train.py written successfully to:\n",
+            "  /content/drive/MyDrive/telecom_churn_prediction/src/train.py\n"
+          ]
+        }
+      ],
       "source": [
         "\n",
         "train_content = '''\n",
@@ -4303,33 +4347,11 @@
         "\n",
         "print(f\"train.py written successfully to:\")\n",
         "print(f\"  {train_path}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "v3ffx3oTENpx",
-        "outputId": "c2e2bb5c-7dda-420f-9b3c-0a1829ac7e0b"
-      },
-      "execution_count": 22,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "train.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/train.py\n"
-          ]
-        }
       ]
     },
     {
       "cell_type": "code",
-      "source": [
-        "# Making sure imbalanced_learn is installed\n",
-        "!pip install imbalanced-learn --quiet\n",
-        "print(\"imbalanced-learn installed successfully!\")"
-      ],
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -4337,19 +4359,28 @@
         "id": "iBkrGpbpFCX7",
         "outputId": "111c276c-f622-4bb8-eeac-0c9e42dec3c8"
       },
-      "execution_count": 23,
       "outputs": [
         {
-          "output_type": "stream",
           "name": "stdout",
+          "output_type": "stream",
           "text": [
             "imbalanced-learn installed successfully!\n"
           ]
         }
+      ],
+      "source": [
+        "# Making sure imbalanced_learn is installed\n",
+        "!pip install imbalanced-learn --quiet\n",
+        "print(\"imbalanced-learn installed successfully!\")"
       ]
     },
     {
       "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "GncnK_RPFQkY"
+      },
+      "outputs": [],
       "source": [
         "#Verifying if training works\n",
         "import importlib\n",
@@ -4375,54 +4406,148 @@
         "print(\"Training complete!\")\n",
         "print(f\"Best parameters : {grid_search.best_params_}\")\n",
         "print(f\"Best ROC AUC    : {grid_search.best_score_:.4f}\")"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n",
+        "# Update MAX_ITER from 1000 to 3000\n",
+        "config_path = os.path.join(PROJECT_PATH, 'src', 'config.py')\n",
+        "\n",
+        "with open(config_path, 'r') as f:\n",
+        "    config_content = f.read()\n",
+        "\n",
+        "config_content = config_content.replace(\n",
+        "    'MAX_ITER = 1000',\n",
+        "    'MAX_ITER = 3000'\n",
+        ")\n",
+        "\n",
+        "with open(config_path, 'w') as f:\n",
+        "    f.write(config_content)\n",
+        "\n",
+        "print(\"config.py updated — MAX_ITER changed from 1000 to 3000\")"
       ],
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "id": "GncnK_RPFQkY",
-        "outputId": "45057920-923d-4db1-8446-b05508a2d1fd"
+        "id": "SRZOKACbOwam",
+        "outputId": "928fcc2e-dc7f-48d7-e7cf-1820b115e134"
       },
-      "execution_count": 24,
+      "execution_count": 31,
       "outputs": [
         {
           "output_type": "stream",
           "name": "stdout",
           "text": [
-            "Starting training — this will take a few minutes...\n",
-            "You will see progress output from GridSearchCV below\n",
-            "============================================================\n",
-            "Fitting 5 folds for each of 24 candidates, totalling 120 fits\n",
-            "============================================================\n",
-            "Training complete!\n",
-            "Best parameters : {'logisticregression__C': 1, 'logisticregression__penalty': 'l1', 'logisticregression__solver': 'saga'}\n",
-            "Best ROC AUC    : 0.8470\n"
-          ]
-        },
-        {
-          "output_type": "stream",
-          "name": "stderr",
-          "text": [
-            "/usr/local/lib/python3.12/dist-packages/sklearn/linear_model/_sag.py:348: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge\n",
-            "  warnings.warn(\n"
+            "config.py updated — MAX_ITER changed from 1000 to 3000\n"
           ]
         }
       ]
     },
     {
       "cell_type": "code",
-      "source": [],
+      "source": [
+        "#Delete the old saved model\n",
+        "# Force retraining with new MAX_ITER\n",
+        "import config\n",
+        "importlib.reload(config)\n",
+        "\n",
+        "if os.path.exists(config.MODEL_PATH):\n",
+        "    os.remove(config.MODEL_PATH)\n",
+        "    print(\"Old model deleted — will retrain with MAX_ITER=3000\")\n",
+        "else:\n",
+        "    print(\"No saved model found\")"
+      ],
       "metadata": {
-        "id": "86LZNhlcIybX"
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "mDk_tBrFO1jF",
+        "outputId": "7712dd37-c797-4865-cddb-2481248f53a8"
       },
-      "execution_count": null,
-      "outputs": []
+      "execution_count": 32,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Old model deleted — will retrain with MAX_ITER=3000\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Verify if model waa saved\n",
+        "# Check model file exists and get details\n",
+        "if os.path.exists(config.MODEL_PATH):\n",
+        "    file_size_mb = os.path.getsize(config.MODEL_PATH) / (1024 * 1024)\n",
+        "    print(\"Model saved successfully!\")\n",
+        "    print(f\"Location : {config.MODEL_PATH}\")\n",
+        "    print(f\"Size     : {file_size_mb:.2f} MB\")\n",
+        "else:\n",
+        "    print(\"Model file not found!\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "yw5A9xszSzsO",
+        "outputId": "f5fc89aa-e1f5-41a4-bbf5-f8661b9fc7d8"
+      },
+      "execution_count": 37,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Model saved successfully!\n",
+            "Location : /content/drive/MyDrive/telecom_churn_prediction/models/logistic_regression_pipeline.pkl\n",
+            "Size     : 0.45 MB\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Verify if next session will load the saved model\n",
+        "# Simulate what happens next session\n",
+        "import joblib\n",
+        "\n",
+        "loaded_model = joblib.load(config.MODEL_PATH)\n",
+        "print(\"Model loads correctly!\")\n",
+        "print(f\"Model type : {type(loaded_model).__name__}\")\n",
+        "print(f\"Model steps: {[step[0] for step in loaded_model.steps]}\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rHvXFMOcS5iZ",
+        "outputId": "805c2445-bd5d-431c-ef1d-2d467a647566"
+      },
+      "execution_count": 38,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Model loads correctly!\n",
+            "Model type : Pipeline\n",
+            "Model steps: ['smote', 'logisticregression']\n"
+          ]
+        }
+      ]
     }
   ],
   "metadata": {
     "colab": {
       "provenance": [],
-      "authorship_tag": "ABX9TyPeTe03DnrHNOyCVPcTQ3oI",
+      "authorship_tag": "ABX9TyMdmyqVZwu/r4pqEehXnRnA",
       "include_colab_link": true
     },
     "kernelspec": {
