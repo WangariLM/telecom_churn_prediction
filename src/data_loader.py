@@ -1,2419 +1,281 @@
-{
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {
-        "id": "view-in-github",
-        "colab_type": "text"
-      },
-      "source": [
-        "<a href=\"https://colab.research.google.com/github/WangariLM/telecom_churn_prediction/blob/main/src/data_loader.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "execution_count": 17,
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "paA0UT54DuWR",
-        "outputId": "ab9024d7-8cfe-474b-826f-2c2dff5e72a4"
-      },
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n"
-          ]
-        }
-      ],
-      "source": [
-        "\n",
-        "from google.colab import drive\n",
-        "drive.mount('/content/drive')"
-      ]
-    },
-    {
-      "cell_type": "markdown",
-      "source": [
-        "Chapter 1\n",
-        ".Creating all the necessary folders\n",
-        ". Unzipping the dataset drom zip file into csv file and renaming it\n",
-        ". First Look into the dataset"
-      ],
-      "metadata": {
-        "id": "jOxT1aqW_xxV"
-      }
-    },
-    {
-      "cell_type": "code",
-      "execution_count": 18,
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "ITcjmX0jELgA",
-        "outputId": "a926336e-94d8-4c14-f60d-f540558226a7"
-      },
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Files in data folder:\n",
-            "  Telco-Customer-Churn.zip\n",
-            "  telco_churn.csv\n"
-          ]
-        }
-      ],
-      "source": [
-        "\n",
-        "import os\n",
-        "\n",
-        "# Define your project path\n",
-        "PROJECT_PATH = '/content/drive/MyDrive/telecom_churn_prediction'\n",
-        "\n",
-        "# Check the data folder\n",
-        "data_path = os.path.join(PROJECT_PATH, 'data')\n",
-        "print(\"Files in data folder:\")\n",
-        "for file in os.listdir(data_path):\n",
-        "    print(f\"  {file}\")"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "# Define all folders needed\n",
-        "folders = [\n",
-        "    'data',\n",
-        "    'notebooks',\n",
-        "    'src',\n",
-        "    'models',\n",
-        "    'reports/figures',\n",
-        "    'tests'\n",
-        "]\n",
-        "\n",
-        "# Create each folder\n",
-        "for folder in folders:\n",
-        "    folder_path = os.path.join(PROJECT_PATH, folder)\n",
-        "    os.makedirs(folder_path, exist_ok=True)\n",
-        "    print(f\"Created: {folder_path}\")\n",
-        "\n",
-        "print(\"\\nProject structure created successfully!\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "K6CUxxe6bsho",
-        "outputId": "5f19759a-2437-4763-e149-c876f4fdbbdc"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/data\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/notebooks\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/src\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/models\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/reports/figures\n",
-            "Created: /content/drive/MyDrive/telecom_churn_prediction/tests\n",
-            "\n",
-            "Project structure created successfully!\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "import os\n",
-        "\n",
-        "PROJECT_PATH = '/content/drive/MyDrive/telecom_churn_prediction'\n",
-        "\n",
-        "print(\"Folders found:\")\n",
-        "for item in sorted(os.listdir(PROJECT_PATH)):\n",
-        "    print(f\"  {item}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "gCT-d3pFX8QU",
-        "outputId": "4ef34cf6-b463-4ec7-dcee-9f38bd58df4d"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Folders found:\n",
-            "  data\n",
-            "  models\n",
-            "  notebooks\n",
-            "  reports\n",
-            "  src\n",
-            "  tests\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "# Extracting the dataset from zip file\n",
-        "import zipfile\n",
-        "\n",
-        "zip_path = os.path.join(PROJECT_PATH, 'data', 'Telco-Customer-Churn.zip')\n",
-        "extract_path = os.path.join(PROJECT_PATH, 'data')\n",
-        "\n",
-        "with zipfile.ZipFile(zip_path, 'r') as zip_ref:\n",
-        "    zip_ref.extractall(extract_path)\n",
-        "    print(\"Files extracted:\")\n",
-        "    for file in zip_ref.namelist():\n",
-        "        print(f\"  {file}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "Ke632CJZX_Y-",
-        "outputId": "680027ac-7ea2-478d-d0a5-692eda351e84"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Files extracted:\n",
-            "  WA_Fn-UseC_-Telco-Customer-Churn.csv\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "#Renaming the csv file\n",
-        "import shutil\n",
-        "\n",
-        "# Find the extracted CSV\n",
-        "old_name = os.path.join(PROJECT_PATH, 'data', 'WA_Fn-UseC_-Telco-Customer-Churn.csv')\n",
-        "new_name = os.path.join(PROJECT_PATH, 'data', 'telco_churn.csv')\n",
-        "\n",
-        "# Rename it\n",
-        "if os.path.exists(old_name):\n",
-        "    shutil.move(old_name, new_name)\n",
-        "    print(\"File renamed successfully to telco_churn.csv\")\n",
-        "else:\n",
-        "    print(\"File already renamed or not found\")\n",
-        "    print(\"Files in data folder:\")\n",
-        "    for file in os.listdir(data_path):\n",
-        "        print(f\"  {file}\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "YCYwTxBjYp9-",
-        "outputId": "d5b08769-3a6e-4ee6-a51f-d07cc304bf0f"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "File renamed successfully to telco_churn.csv\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "#Verifying if everything is in order\n",
-        "def show_project_structure(path, indent=0):\n",
-        "    \"\"\"Display project folder structure\"\"\"\n",
-        "    for item in sorted(os.listdir(path)):\n",
-        "        item_path = os.path.join(path, item)\n",
-        "        print(' ' * indent + '|-- ' + item)\n",
-        "        if os.path.isdir(item_path):\n",
-        "            show_project_structure(item_path, indent + 4)\n",
-        "\n",
-        "print(\"telecom-churn-prediction/\")\n",
-        "show_project_structure(PROJECT_PATH)"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "FHY8sbfEZjLN",
-        "outputId": "6230db91-ac5f-4c1d-f9d6-617204117cc2"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "telecom-churn-prediction/\n",
-            "|-- data\n",
-            "    |-- Telco-Customer-Churn.zip\n",
-            "    |-- telco_churn.csv\n",
-            "|-- models\n",
-            "|-- notebooks\n",
-            "|-- reports\n",
-            "    |-- figures\n",
-            "|-- src\n",
-            "|-- tests\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "#A look into the data\n",
-        "import pandas as pd\n",
-        "\n",
-        "# Load the data\n",
-        "df = pd.read_csv(new_name)\n",
-        "\n",
-        "# Basic information\n",
-        "print(\"Shape of dataset:\")\n",
-        "print(f\"  {df.shape[0]} rows (customers)\")\n",
-        "print(f\"  {df.shape[1]} columns (features)\")\n",
-        "\n",
-        "print(\"\\nFirst 5 rows:\")\n",
-        "display(df.head())\n",
-        "\n",
-        "print(\"\\nColumn names and data types:\")\n",
-        "print(df.dtypes)\n",
-        "\n",
-        "print(\"\\nBasic statistics:\")\n",
-        "display(df.describe())"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/",
-          "height": 1000
-        },
-        "collapsed": true,
-        "id": "Eddf5NV0Y7vB",
-        "outputId": "1df8670c-3c83-4d9d-ca06-cf2835fe63c9"
-      },
-      "execution_count": null,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Shape of dataset:\n",
-            "  7043 rows (customers)\n",
-            "  21 columns (features)\n",
-            "\n",
-            "First 5 rows:\n"
-          ]
-        },
-        {
-          "output_type": "display_data",
-          "data": {
-            "text/plain": [
-              "   customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
-              "0  7590-VHVEG  Female              0     Yes         No       1           No   \n",
-              "1  5575-GNVDE    Male              0      No         No      34          Yes   \n",
-              "2  3668-QPYBK    Male              0      No         No       2          Yes   \n",
-              "3  7795-CFOCW    Male              0      No         No      45           No   \n",
-              "4  9237-HQITU  Female              0      No         No       2          Yes   \n",
-              "\n",
-              "      MultipleLines InternetService OnlineSecurity  ... DeviceProtection  \\\n",
-              "0  No phone service             DSL             No  ...               No   \n",
-              "1                No             DSL            Yes  ...              Yes   \n",
-              "2                No             DSL            Yes  ...               No   \n",
-              "3  No phone service             DSL            Yes  ...              Yes   \n",
-              "4                No     Fiber optic             No  ...               No   \n",
-              "\n",
-              "  TechSupport StreamingTV StreamingMovies        Contract PaperlessBilling  \\\n",
-              "0          No          No              No  Month-to-month              Yes   \n",
-              "1          No          No              No        One year               No   \n",
-              "2          No          No              No  Month-to-month              Yes   \n",
-              "3         Yes          No              No        One year               No   \n",
-              "4          No          No              No  Month-to-month              Yes   \n",
-              "\n",
-              "               PaymentMethod MonthlyCharges  TotalCharges Churn  \n",
-              "0           Electronic check          29.85         29.85    No  \n",
-              "1               Mailed check          56.95        1889.5    No  \n",
-              "2               Mailed check          53.85        108.15   Yes  \n",
-              "3  Bank transfer (automatic)          42.30       1840.75    No  \n",
-              "4           Electronic check          70.70        151.65   Yes  \n",
-              "\n",
-              "[5 rows x 21 columns]"
-            ],
-            "text/html": [
-              "\n",
-              "  <div id=\"df-699e7072-3a66-4520-8176-ee1dcfe293e0\" class=\"colab-df-container\">\n",
-              "    <div>\n",
-              "<style scoped>\n",
-              "    .dataframe tbody tr th:only-of-type {\n",
-              "        vertical-align: middle;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe tbody tr th {\n",
-              "        vertical-align: top;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe thead th {\n",
-              "        text-align: right;\n",
-              "    }\n",
-              "</style>\n",
-              "<table border=\"1\" class=\"dataframe\">\n",
-              "  <thead>\n",
-              "    <tr style=\"text-align: right;\">\n",
-              "      <th></th>\n",
-              "      <th>customerID</th>\n",
-              "      <th>gender</th>\n",
-              "      <th>SeniorCitizen</th>\n",
-              "      <th>Partner</th>\n",
-              "      <th>Dependents</th>\n",
-              "      <th>tenure</th>\n",
-              "      <th>PhoneService</th>\n",
-              "      <th>MultipleLines</th>\n",
-              "      <th>InternetService</th>\n",
-              "      <th>OnlineSecurity</th>\n",
-              "      <th>...</th>\n",
-              "      <th>DeviceProtection</th>\n",
-              "      <th>TechSupport</th>\n",
-              "      <th>StreamingTV</th>\n",
-              "      <th>StreamingMovies</th>\n",
-              "      <th>Contract</th>\n",
-              "      <th>PaperlessBilling</th>\n",
-              "      <th>PaymentMethod</th>\n",
-              "      <th>MonthlyCharges</th>\n",
-              "      <th>TotalCharges</th>\n",
-              "      <th>Churn</th>\n",
-              "    </tr>\n",
-              "  </thead>\n",
-              "  <tbody>\n",
-              "    <tr>\n",
-              "      <th>0</th>\n",
-              "      <td>7590-VHVEG</td>\n",
-              "      <td>Female</td>\n",
-              "      <td>0</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>1</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No phone service</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>No</td>\n",
-              "      <td>...</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Electronic check</td>\n",
-              "      <td>29.85</td>\n",
-              "      <td>29.85</td>\n",
-              "      <td>No</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>1</th>\n",
-              "      <td>5575-GNVDE</td>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>34</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>...</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>One year</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Mailed check</td>\n",
-              "      <td>56.95</td>\n",
-              "      <td>1889.5</td>\n",
-              "      <td>No</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>2</th>\n",
-              "      <td>3668-QPYBK</td>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>2</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>...</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Mailed check</td>\n",
-              "      <td>53.85</td>\n",
-              "      <td>108.15</td>\n",
-              "      <td>Yes</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>3</th>\n",
-              "      <td>7795-CFOCW</td>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>45</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No phone service</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>...</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>One year</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Bank transfer (automatic)</td>\n",
-              "      <td>42.30</td>\n",
-              "      <td>1840.75</td>\n",
-              "      <td>No</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>4</th>\n",
-              "      <td>9237-HQITU</td>\n",
-              "      <td>Female</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>2</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Fiber optic</td>\n",
-              "      <td>No</td>\n",
-              "      <td>...</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Electronic check</td>\n",
-              "      <td>70.70</td>\n",
-              "      <td>151.65</td>\n",
-              "      <td>Yes</td>\n",
-              "    </tr>\n",
-              "  </tbody>\n",
-              "</table>\n",
-              "<p>5 rows × 21 columns</p>\n",
-              "</div>\n",
-              "    <div class=\"colab-df-buttons\">\n",
-              "\n",
-              "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-699e7072-3a66-4520-8176-ee1dcfe293e0')\"\n",
-              "            title=\"Convert this dataframe to an interactive table.\"\n",
-              "            style=\"display:none;\">\n",
-              "\n",
-              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
-              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
-              "  </svg>\n",
-              "    </button>\n",
-              "\n",
-              "  <style>\n",
-              "    .colab-df-container {\n",
-              "      display:flex;\n",
-              "      gap: 12px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert {\n",
-              "      background-color: #E8F0FE;\n",
-              "      border: none;\n",
-              "      border-radius: 50%;\n",
-              "      cursor: pointer;\n",
-              "      display: none;\n",
-              "      fill: #1967D2;\n",
-              "      height: 32px;\n",
-              "      padding: 0 0 0 0;\n",
-              "      width: 32px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert:hover {\n",
-              "      background-color: #E2EBFA;\n",
-              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
-              "      fill: #174EA6;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-buttons div {\n",
-              "      margin-bottom: 4px;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert {\n",
-              "      background-color: #3B4455;\n",
-              "      fill: #D2E3FC;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert:hover {\n",
-              "      background-color: #434B5C;\n",
-              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
-              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
-              "      fill: #FFFFFF;\n",
-              "    }\n",
-              "  </style>\n",
-              "\n",
-              "    <script>\n",
-              "      const buttonEl =\n",
-              "        document.querySelector('#df-699e7072-3a66-4520-8176-ee1dcfe293e0 button.colab-df-convert');\n",
-              "      buttonEl.style.display =\n",
-              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
-              "\n",
-              "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-699e7072-3a66-4520-8176-ee1dcfe293e0');\n",
-              "        const dataTable =\n",
-              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
-              "                                                    [key], {});\n",
-              "        if (!dataTable) return;\n",
-              "\n",
-              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
-              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
-              "          + ' to learn more about interactive tables.';\n",
-              "        element.innerHTML = '';\n",
-              "        dataTable['output_type'] = 'display_data';\n",
-              "        await google.colab.output.renderOutput(dataTable, element);\n",
-              "        const docLink = document.createElement('div');\n",
-              "        docLink.innerHTML = docLinkHtml;\n",
-              "        element.appendChild(docLink);\n",
-              "      }\n",
-              "    </script>\n",
-              "  </div>\n",
-              "\n",
-              "\n",
-              "    </div>\n",
-              "  </div>\n"
-            ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe"
-            }
-          },
-          "metadata": {}
-        },
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "Column names and data types:\n",
-            "customerID           object\n",
-            "gender               object\n",
-            "SeniorCitizen         int64\n",
-            "Partner              object\n",
-            "Dependents           object\n",
-            "tenure                int64\n",
-            "PhoneService         object\n",
-            "MultipleLines        object\n",
-            "InternetService      object\n",
-            "OnlineSecurity       object\n",
-            "OnlineBackup         object\n",
-            "DeviceProtection     object\n",
-            "TechSupport          object\n",
-            "StreamingTV          object\n",
-            "StreamingMovies      object\n",
-            "Contract             object\n",
-            "PaperlessBilling     object\n",
-            "PaymentMethod        object\n",
-            "MonthlyCharges      float64\n",
-            "TotalCharges         object\n",
-            "Churn                object\n",
-            "dtype: object\n",
-            "\n",
-            "Basic statistics:\n"
-          ]
-        },
-        {
-          "output_type": "display_data",
-          "data": {
-            "text/plain": [
-              "       SeniorCitizen       tenure  MonthlyCharges\n",
-              "count    7043.000000  7043.000000     7043.000000\n",
-              "mean        0.162147    32.371149       64.761692\n",
-              "std         0.368612    24.559481       30.090047\n",
-              "min         0.000000     0.000000       18.250000\n",
-              "25%         0.000000     9.000000       35.500000\n",
-              "50%         0.000000    29.000000       70.350000\n",
-              "75%         0.000000    55.000000       89.850000\n",
-              "max         1.000000    72.000000      118.750000"
-            ],
-            "text/html": [
-              "\n",
-              "  <div id=\"df-cdeb19b9-017b-4f77-ae95-83640628fc8b\" class=\"colab-df-container\">\n",
-              "    <div>\n",
-              "<style scoped>\n",
-              "    .dataframe tbody tr th:only-of-type {\n",
-              "        vertical-align: middle;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe tbody tr th {\n",
-              "        vertical-align: top;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe thead th {\n",
-              "        text-align: right;\n",
-              "    }\n",
-              "</style>\n",
-              "<table border=\"1\" class=\"dataframe\">\n",
-              "  <thead>\n",
-              "    <tr style=\"text-align: right;\">\n",
-              "      <th></th>\n",
-              "      <th>SeniorCitizen</th>\n",
-              "      <th>tenure</th>\n",
-              "      <th>MonthlyCharges</th>\n",
-              "    </tr>\n",
-              "  </thead>\n",
-              "  <tbody>\n",
-              "    <tr>\n",
-              "      <th>count</th>\n",
-              "      <td>7043.000000</td>\n",
-              "      <td>7043.000000</td>\n",
-              "      <td>7043.000000</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>mean</th>\n",
-              "      <td>0.162147</td>\n",
-              "      <td>32.371149</td>\n",
-              "      <td>64.761692</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>std</th>\n",
-              "      <td>0.368612</td>\n",
-              "      <td>24.559481</td>\n",
-              "      <td>30.090047</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>min</th>\n",
-              "      <td>0.000000</td>\n",
-              "      <td>0.000000</td>\n",
-              "      <td>18.250000</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>25%</th>\n",
-              "      <td>0.000000</td>\n",
-              "      <td>9.000000</td>\n",
-              "      <td>35.500000</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>50%</th>\n",
-              "      <td>0.000000</td>\n",
-              "      <td>29.000000</td>\n",
-              "      <td>70.350000</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>75%</th>\n",
-              "      <td>0.000000</td>\n",
-              "      <td>55.000000</td>\n",
-              "      <td>89.850000</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>max</th>\n",
-              "      <td>1.000000</td>\n",
-              "      <td>72.000000</td>\n",
-              "      <td>118.750000</td>\n",
-              "    </tr>\n",
-              "  </tbody>\n",
-              "</table>\n",
-              "</div>\n",
-              "    <div class=\"colab-df-buttons\">\n",
-              "\n",
-              "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-cdeb19b9-017b-4f77-ae95-83640628fc8b')\"\n",
-              "            title=\"Convert this dataframe to an interactive table.\"\n",
-              "            style=\"display:none;\">\n",
-              "\n",
-              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
-              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
-              "  </svg>\n",
-              "    </button>\n",
-              "\n",
-              "  <style>\n",
-              "    .colab-df-container {\n",
-              "      display:flex;\n",
-              "      gap: 12px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert {\n",
-              "      background-color: #E8F0FE;\n",
-              "      border: none;\n",
-              "      border-radius: 50%;\n",
-              "      cursor: pointer;\n",
-              "      display: none;\n",
-              "      fill: #1967D2;\n",
-              "      height: 32px;\n",
-              "      padding: 0 0 0 0;\n",
-              "      width: 32px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert:hover {\n",
-              "      background-color: #E2EBFA;\n",
-              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
-              "      fill: #174EA6;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-buttons div {\n",
-              "      margin-bottom: 4px;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert {\n",
-              "      background-color: #3B4455;\n",
-              "      fill: #D2E3FC;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert:hover {\n",
-              "      background-color: #434B5C;\n",
-              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
-              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
-              "      fill: #FFFFFF;\n",
-              "    }\n",
-              "  </style>\n",
-              "\n",
-              "    <script>\n",
-              "      const buttonEl =\n",
-              "        document.querySelector('#df-cdeb19b9-017b-4f77-ae95-83640628fc8b button.colab-df-convert');\n",
-              "      buttonEl.style.display =\n",
-              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
-              "\n",
-              "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-cdeb19b9-017b-4f77-ae95-83640628fc8b');\n",
-              "        const dataTable =\n",
-              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
-              "                                                    [key], {});\n",
-              "        if (!dataTable) return;\n",
-              "\n",
-              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
-              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
-              "          + ' to learn more about interactive tables.';\n",
-              "        element.innerHTML = '';\n",
-              "        dataTable['output_type'] = 'display_data';\n",
-              "        await google.colab.output.renderOutput(dataTable, element);\n",
-              "        const docLink = document.createElement('div');\n",
-              "        docLink.innerHTML = docLinkHtml;\n",
-              "        element.appendChild(docLink);\n",
-              "      }\n",
-              "    </script>\n",
-              "  </div>\n",
-              "\n",
-              "\n",
-              "    </div>\n",
-              "  </div>\n"
-            ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe",
-              "summary": "{\n  \"name\": \"display(df\",\n  \"rows\": 8,\n  \"fields\": [\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2489.9992387084,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          0.1621468124378816,\n          1.0,\n          0.36861160561002687\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2478.9752758409018,\n        \"min\": 0.0,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          32.37114865824223,\n          29.0,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 2468.7047672837775,\n        \"min\": 18.25,\n        \"max\": 7043.0,\n        \"num_unique_values\": 8,\n        \"samples\": [\n          64.76169246059918,\n          70.35,\n          7043.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
-            }
-          },
-          "metadata": {}
-        }
-      ]
-    },
-    {
-      "cell_type": "markdown",
-      "source": [
-        "Configuration"
-      ],
-      "metadata": {
-        "id": "eODQaOUl5GSm"
-      }
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "\n",
-        "# =============================================================================\n",
-        "# CHAPTER 2: Configuration\n",
-        "# Writes config.py to src/\n",
-        "# Only run once — file stays in Drive permanently\n",
-        "# =============================================================================\n",
-        "config_content = '''\n",
-        "# =============================================================================\n",
-        "# config.py\n",
-        "# Central configuration file for the telecom churn prediction pipeline.\n",
-        "# All constants, paths, and settings are defined here.\n",
-        "# Never hardcode these values anywhere else in the codebase.\n",
-        "# =============================================================================\n",
-        "\n",
-        "import os\n",
-        "\n",
-        "# =============================================================================\n",
-        "# PROJECT PATHS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Base project path — all other paths are relative to this\n",
-        "BASE_DIR = '/content/drive/MyDrive/telecom_churn_prediction'\n",
-        "\n",
-        "# Data paths\n",
-        "DATA_DIR = os.path.join(BASE_DIR, 'data')\n",
-        "RAW_DATA_PATH = os.path.join(DATA_DIR, 'telco_churn.csv')\n",
-        "\n",
-        "# Model output path\n",
-        "MODEL_DIR = os.path.join(BASE_DIR, 'models')\n",
-        "MODEL_PATH = os.path.join(MODEL_DIR, 'logistic_regression_pipeline.pkl')\n",
-        "\n",
-        "# Reports and figures path\n",
-        "REPORTS_DIR = os.path.join(BASE_DIR, 'reports')\n",
-        "FIGURES_DIR = os.path.join(REPORTS_DIR, 'figures')\n",
-        "\n",
-        "# =============================================================================\n",
-        "# REPRODUCIBILITY\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Fixed random seed used everywhere — ensures identical results on every run\n",
-        "RANDOM_SEED = 42\n",
-        "\n",
-        "# =============================================================================\n",
-        "# DATA SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# The column we are predicting\n",
-        "TARGET_COLUMN = 'Churn'\n",
-        "\n",
-        "# Column to drop — just an identifier, no predictive value\n",
-        "DROP_COLUMNS = ['customerID']\n",
-        "\n",
-        "# Numerical features in the raw dataset\n",
-        "NUMERICAL_FEATURES = [\n",
-        "    'tenure',\n",
-        "    'MonthlyCharges',\n",
-        "    'TotalCharges'\n",
-        "]\n",
-        "\n",
-        "# Binary categorical features — only two possible values (Yes/No)\n",
-        "BINARY_FEATURES = [\n",
-        "    'gender',\n",
-        "    'Partner',\n",
-        "    'Dependents',\n",
-        "    'PhoneService',\n",
-        "    'PaperlessBilling'\n",
-        "]\n",
-        "\n",
-        "# Multi-class categorical features — more than two possible values\n",
-        "MULTICLASS_FEATURES = [\n",
-        "    'MultipleLines',\n",
-        "    'InternetService',\n",
-        "    'OnlineSecurity',\n",
-        "    'OnlineBackup',\n",
-        "    'DeviceProtection',\n",
-        "    'TechSupport',\n",
-        "    'StreamingTV',\n",
-        "    'StreamingMovies',\n",
-        "    'Contract',\n",
-        "    'PaymentMethod'\n",
-        "]\n",
-        "\n",
-        "# SeniorCitizen is stored as int (0/1) but is categorical in nature\n",
-        "# We handle it separately from other numerical features\n",
-        "SENIOR_CITIZEN_FEATURE = 'SeniorCitizen'\n",
-        "\n",
-        "# =============================================================================\n",
-        "# ENGINEERED FEATURE NAMES\n",
-        "# =============================================================================\n",
-        "\n",
-        "# These are the new columns our feature engineering transformer will create\n",
-        "ENGINEERED_NUMERICAL_FEATURES = [\n",
-        "    'TotalServices',\n",
-        "    'SpendPerService',\n",
-        "    'ChargesRatio',\n",
-        "    'ContractRiskScore',\n",
-        "    'TenureContractInteraction'\n",
-        "]\n",
-        "\n",
-        "ENGINEERED_BINARY_FEATURES = [\n",
-        "    'HasPremiumServices',\n",
-        "    'IsAutomatedPayment'\n",
-        "]\n",
-        "\n",
-        "ENGINEERED_CATEGORICAL_FEATURES = [\n",
-        "    'TenureGroup'\n",
-        "]\n",
-        "\n",
-        "# =============================================================================\n",
-        "# DATA SPLIT SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Proportion of data reserved for final testing — never touched during training\n",
-        "TEST_SIZE = 0.2\n",
-        "\n",
-        "# Proportion of training data used for validation during development\n",
-        "VALIDATION_SIZE = 0.2\n",
-        "\n",
-        "# =============================================================================\n",
-        "# CROSS VALIDATION SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Number of folds for stratified k-fold cross validation\n",
-        "# 5 is the production standard — balances reliability and computation time\n",
-        "CV_FOLDS = 5\n",
-        "\n",
-        "# Primary metric used to select the best model during cross validation\n",
-        "# roc_auc is robust to class imbalance and measures overall discrimination\n",
-        "SCORING_METRIC = 'roc_auc'\n",
-        "\n",
-        "# =============================================================================\n",
-        "# HYPERPARAMETER TUNING GRID\n",
-        "# =============================================================================\n",
-        "\n",
-        "# C is the inverse of regularization strength (C = 1/lambda)\n",
-        "# Small C = strong regularization = simpler model\n",
-        "# Large C = weak regularization = more complex model\n",
-        "# We search across several orders of magnitude to find the sweet spot\n",
-        "\n",
-        "HYPERPARAMETER_GRID = {\n",
-        "    # C values to try — covering a wide range from strong to weak regularization\n",
-        "    'logisticregression__C': [0.001, 0.01, 0.1, 1, 10, 100],\n",
-        "\n",
-        "    # Penalty type — L1 can zero out features, L2 shrinks them\n",
-        "    'logisticregression__penalty': ['l1', 'l2'],\n",
-        "\n",
-        "    # Solver must be compatible with penalty type\n",
-        "    # liblinear: works with both L1 and L2, good for small datasets\n",
-        "    # saga: works with both L1 and L2, better for large datasets\n",
-        "    'logisticregression__solver': ['liblinear', 'saga']\n",
-        "}\n",
-        "\n",
-        "# =============================================================================\n",
-        "# MODEL TRAINING SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Maximum iterations for the logistic regression solver to converge\n",
-        "# 1000 is generous — prevents convergence warnings on complex data\n",
-        "MAX_ITER = 1000\n",
-        "\n",
-        "# Class weight setting\n",
-        "# balanced: automatically adjusts weights inversely proportional to class frequency\n",
-        "# This is a second line of defence against class imbalance alongside SMOTE\n",
-        "CLASS_WEIGHT = 'balanced'\n",
-        "\n",
-        "# =============================================================================\n",
-        "# SMOTE SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Sampling strategy for SMOTE\n",
-        "# auto: resamples minority class to match majority class exactly\n",
-        "SMOTE_SAMPLING_STRATEGY = 'auto'\n",
-        "\n",
-        "# Number of nearest neighbours SMOTE uses to generate synthetic samples\n",
-        "# 5 is the default and works well in most cases\n",
-        "SMOTE_K_NEIGHBOURS = 5\n",
-        "\n",
-        "# =============================================================================\n",
-        "# EVALUATION SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Default classification threshold\n",
-        "# We expose this as a config value because the business may want to adjust it\n",
-        "# Lower threshold = higher recall = catch more churners but more false alarms\n",
-        "# Higher threshold = higher precision = fewer false alarms but miss more churners\n",
-        "CLASSIFICATION_THRESHOLD = 0.5\n",
-        "\n",
-        "# =============================================================================\n",
-        "# LOGGING SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# Log level — INFO shows progress, DEBUG shows everything\n",
-        "LOG_LEVEL = 'INFO'\n",
-        "\n",
-        "# Log format — timestamp, module name, level, message\n",
-        "LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'\n",
-        "\n",
-        "# =============================================================================\n",
-        "# FIGURE SETTINGS\n",
-        "# =============================================================================\n",
-        "\n",
-        "# DPI for saved figures — 300 is publication quality\n",
-        "FIGURE_DPI = 300\n",
-        "\n",
-        "# Default figure size\n",
-        "FIGURE_SIZE = (10, 6)\n",
-        "'''\n",
-        "\n",
-        "# Write config.py to the src folder\n",
-        "config_path = os.path.join(PROJECT_PATH, 'src', 'config.py')\n",
-        "\n",
-        "with open(config_path, 'w') as f:\n",
-        "    f.write(config_content)\n",
-        "\n",
-        "print(f\"config.py written successfully to:\")\n",
-        "print(f\"  {config_path}\")"
-      ],
-      "metadata": {
-        "id": "YGBiKTS-ZQMu",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "outputId": "3b491bd5-f4f2-415b-b3d4-8d23271f65f4"
-      },
-      "execution_count": 8,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "config.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/config.py\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "# Read and display the file we just wrote\n",
-        "with open(config_path, 'r') as f:\n",
-        "    print(f.read())"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "w4rQUsoO5V3z",
-        "outputId": "48de8d8f-d2ea-42f4-d4b9-bc8b48e03041"
-      },
-      "execution_count": 9,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "# =============================================================================\n",
-            "# config.py\n",
-            "# Central configuration file for the telecom churn prediction pipeline.\n",
-            "# All constants, paths, and settings are defined here.\n",
-            "# Never hardcode these values anywhere else in the codebase.\n",
-            "# =============================================================================\n",
-            "\n",
-            "import os\n",
-            "\n",
-            "# =============================================================================\n",
-            "# PROJECT PATHS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Base project path — all other paths are relative to this\n",
-            "BASE_DIR = '/content/drive/MyDrive/telecom_churn_prediction'\n",
-            "\n",
-            "# Data paths\n",
-            "DATA_DIR = os.path.join(BASE_DIR, 'data')\n",
-            "RAW_DATA_PATH = os.path.join(DATA_DIR, 'telco_churn.csv')\n",
-            "\n",
-            "# Model output path\n",
-            "MODEL_DIR = os.path.join(BASE_DIR, 'models')\n",
-            "MODEL_PATH = os.path.join(MODEL_DIR, 'logistic_regression_pipeline.pkl')\n",
-            "\n",
-            "# Reports and figures path\n",
-            "REPORTS_DIR = os.path.join(BASE_DIR, 'reports')\n",
-            "FIGURES_DIR = os.path.join(REPORTS_DIR, 'figures')\n",
-            "\n",
-            "# =============================================================================\n",
-            "# REPRODUCIBILITY\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Fixed random seed used everywhere — ensures identical results on every run\n",
-            "RANDOM_SEED = 42\n",
-            "\n",
-            "# =============================================================================\n",
-            "# DATA SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# The column we are predicting\n",
-            "TARGET_COLUMN = 'Churn'\n",
-            "\n",
-            "# Column to drop — just an identifier, no predictive value\n",
-            "DROP_COLUMNS = ['customerID']\n",
-            "\n",
-            "# Numerical features in the raw dataset\n",
-            "NUMERICAL_FEATURES = [\n",
-            "    'tenure',\n",
-            "    'MonthlyCharges',\n",
-            "    'TotalCharges'\n",
-            "]\n",
-            "\n",
-            "# Binary categorical features — only two possible values (Yes/No)\n",
-            "BINARY_FEATURES = [\n",
-            "    'gender',\n",
-            "    'Partner',\n",
-            "    'Dependents',\n",
-            "    'PhoneService',\n",
-            "    'PaperlessBilling'\n",
-            "]\n",
-            "\n",
-            "# Multi-class categorical features — more than two possible values\n",
-            "MULTICLASS_FEATURES = [\n",
-            "    'MultipleLines',\n",
-            "    'InternetService',\n",
-            "    'OnlineSecurity',\n",
-            "    'OnlineBackup',\n",
-            "    'DeviceProtection',\n",
-            "    'TechSupport',\n",
-            "    'StreamingTV',\n",
-            "    'StreamingMovies',\n",
-            "    'Contract',\n",
-            "    'PaymentMethod'\n",
-            "]\n",
-            "\n",
-            "# SeniorCitizen is stored as int (0/1) but is categorical in nature\n",
-            "# We handle it separately from other numerical features\n",
-            "SENIOR_CITIZEN_FEATURE = 'SeniorCitizen'\n",
-            "\n",
-            "# =============================================================================\n",
-            "# ENGINEERED FEATURE NAMES\n",
-            "# =============================================================================\n",
-            "\n",
-            "# These are the new columns our feature engineering transformer will create\n",
-            "ENGINEERED_NUMERICAL_FEATURES = [\n",
-            "    'TotalServices',\n",
-            "    'SpendPerService',\n",
-            "    'ChargesRatio',\n",
-            "    'ContractRiskScore',\n",
-            "    'TenureContractInteraction'\n",
-            "]\n",
-            "\n",
-            "ENGINEERED_BINARY_FEATURES = [\n",
-            "    'HasPremiumServices',\n",
-            "    'IsAutomatedPayment'\n",
-            "]\n",
-            "\n",
-            "ENGINEERED_CATEGORICAL_FEATURES = [\n",
-            "    'TenureGroup'\n",
-            "]\n",
-            "\n",
-            "# =============================================================================\n",
-            "# DATA SPLIT SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Proportion of data reserved for final testing — never touched during training\n",
-            "TEST_SIZE = 0.2\n",
-            "\n",
-            "# Proportion of training data used for validation during development\n",
-            "VALIDATION_SIZE = 0.2\n",
-            "\n",
-            "# =============================================================================\n",
-            "# CROSS VALIDATION SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Number of folds for stratified k-fold cross validation\n",
-            "# 5 is the production standard — balances reliability and computation time\n",
-            "CV_FOLDS = 5\n",
-            "\n",
-            "# Primary metric used to select the best model during cross validation\n",
-            "# roc_auc is robust to class imbalance and measures overall discrimination\n",
-            "SCORING_METRIC = 'roc_auc'\n",
-            "\n",
-            "# =============================================================================\n",
-            "# HYPERPARAMETER TUNING GRID\n",
-            "# =============================================================================\n",
-            "\n",
-            "# C is the inverse of regularization strength (C = 1/lambda)\n",
-            "# Small C = strong regularization = simpler model\n",
-            "# Large C = weak regularization = more complex model\n",
-            "# We search across several orders of magnitude to find the sweet spot\n",
-            "\n",
-            "HYPERPARAMETER_GRID = {\n",
-            "    # C values to try — covering a wide range from strong to weak regularization\n",
-            "    'logisticregression__C': [0.001, 0.01, 0.1, 1, 10, 100],\n",
-            "\n",
-            "    # Penalty type — L1 can zero out features, L2 shrinks them\n",
-            "    'logisticregression__penalty': ['l1', 'l2'],\n",
-            "\n",
-            "    # Solver must be compatible with penalty type\n",
-            "    # liblinear: works with both L1 and L2, good for small datasets\n",
-            "    # saga: works with both L1 and L2, better for large datasets\n",
-            "    'logisticregression__solver': ['liblinear', 'saga']\n",
-            "}\n",
-            "\n",
-            "# =============================================================================\n",
-            "# MODEL TRAINING SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Maximum iterations for the logistic regression solver to converge\n",
-            "# 1000 is generous — prevents convergence warnings on complex data\n",
-            "MAX_ITER = 1000\n",
-            "\n",
-            "# Class weight setting\n",
-            "# balanced: automatically adjusts weights inversely proportional to class frequency\n",
-            "# This is a second line of defence against class imbalance alongside SMOTE\n",
-            "CLASS_WEIGHT = 'balanced'\n",
-            "\n",
-            "# =============================================================================\n",
-            "# SMOTE SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Sampling strategy for SMOTE\n",
-            "# auto: resamples minority class to match majority class exactly\n",
-            "SMOTE_SAMPLING_STRATEGY = 'auto'\n",
-            "\n",
-            "# Number of nearest neighbours SMOTE uses to generate synthetic samples\n",
-            "# 5 is the default and works well in most cases\n",
-            "SMOTE_K_NEIGHBOURS = 5\n",
-            "\n",
-            "# =============================================================================\n",
-            "# EVALUATION SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Default classification threshold\n",
-            "# We expose this as a config value because the business may want to adjust it\n",
-            "# Lower threshold = higher recall = catch more churners but more false alarms\n",
-            "# Higher threshold = higher precision = fewer false alarms but miss more churners\n",
-            "CLASSIFICATION_THRESHOLD = 0.5\n",
-            "\n",
-            "# =============================================================================\n",
-            "# LOGGING SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# Log level — INFO shows progress, DEBUG shows everything\n",
-            "LOG_LEVEL = 'INFO'\n",
-            "\n",
-            "# Log format — timestamp, module name, level, message\n",
-            "LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'\n",
-            "\n",
-            "# =============================================================================\n",
-            "# FIGURE SETTINGS\n",
-            "# =============================================================================\n",
-            "\n",
-            "# DPI for saved figures — 300 is publication quality\n",
-            "FIGURE_DPI = 300\n",
-            "\n",
-            "# Default figure size\n",
-            "FIGURE_SIZE = (10, 6)\n",
-            "\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "import sys\n",
-        "\n",
-        "# Add src folder to Python path so we can import from it\n",
-        "sys.path.append(os.path.join(PROJECT_PATH, 'src'))\n",
-        "\n",
-        "# Import config\n",
-        "import config\n",
-        "\n",
-        "# Verify a few values\n",
-        "print(\"Verifying config values:\")\n",
-        "print(f\"  TARGET_COLUMN: {config.TARGET_COLUMN}\")\n",
-        "print(f\"  TEST_SIZE: {config.TEST_SIZE}\")\n",
-        "print(f\"  CV_FOLDS: {config.CV_FOLDS}\")\n",
-        "print(f\"  RANDOM_SEED: {config.RANDOM_SEED}\")\n",
-        "print(f\"  NUMERICAL_FEATURES: {config.NUMERICAL_FEATURES}\")\n",
-        "print(f\"  SCORING_METRIC: {config.SCORING_METRIC}\")\n",
-        "print(f\"\\nconfig.py imported successfully!\")"
-      ],
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "6FQuArSx5cVz",
-        "outputId": "27bf5719-36be-4119-9a82-0d25e621ee9e"
-      },
-      "execution_count": 10,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Verifying config values:\n",
-            "  TARGET_COLUMN: Churn\n",
-            "  TEST_SIZE: 0.2\n",
-            "  CV_FOLDS: 5\n",
-            "  RANDOM_SEED: 42\n",
-            "  NUMERICAL_FEATURES: ['tenure', 'MonthlyCharges', 'TotalCharges']\n",
-            "  SCORING_METRIC: roc_auc\n",
-            "\n",
-            "config.py imported successfully!\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "markdown",
-      "source": [
-        "Creating the data_loader.py"
-      ],
-      "metadata": {
-        "id": "xWBHV0tv-uMC"
-      }
-    },
-    {
-      "cell_type": "markdown",
-      "source": [
-        "This file is responsible for one thing only ie loading the raw CSV and returning a clean dataframe ready for feature engineering. It does not do any feature engineering or preprocessing. Just loading and basic cleaning.\n",
-        "Specifically it will:\n",
-        "1. Load the raw CSV file\n",
-        "2. Drop customerID\n",
-        "3. Fix TotalCharges from string to float\n",
-        "4. Convert Churn from Yes/No to 1/0\n",
-        "5. Log every step so we can see exactly what is happening"
-      ],
-      "metadata": {
-        "id": "k2Dc5PQk-b-a"
-      }
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "# =============================================================================\n",
-        "# CHAPTER 3: DATA LOADER\n",
-        "# Writes data_loader.py to src/\n",
-        "# Only run once — file stays in Drive permanently\n",
-        "# =============================================================================\n",
-        "data_loader_content = '''\n",
-        "# =============================================================================\n",
-        "# data_loader.py\n",
-        "# Responsible for loading raw data and performing initial cleaning.\n",
-        "# No feature engineering happens here — just getting data into a clean state.\n",
-        "# =============================================================================\n",
-        "\n",
-        "import logging\n",
-        "import pandas as pd\n",
-        "import numpy as np\n",
-        "import os\n",
-        "import sys\n",
-        "\n",
-        "# Add src to path so we can import config\n",
-        "sys.path.append(os.path.dirname(os.path.abspath(__file__)))\n",
-        "import config\n",
-        "\n",
-        "# Set up logger for this module\n",
-        "logging.basicConfig(level=config.LOG_LEVEL, format=config.LOG_FORMAT)\n",
-        "logger = logging.getLogger(__name__)\n",
-        "\n",
-        "\n",
-        "def load_raw_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Load raw CSV data from disk.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    filepath : str\n",
-        "        Path to the raw CSV file. Defaults to path in config.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Raw dataframe exactly as it appears in the CSV.\n",
-        "\n",
-        "    Raises\n",
-        "    ------\n",
-        "    FileNotFoundError\n",
-        "        If the CSV file does not exist at the given path.\n",
-        "    \"\"\"\n",
-        "    logger.info(f\"Loading raw data from: {filepath}\")\n",
-        "\n",
-        "    if not os.path.exists(filepath):\n",
-        "        logger.error(f\"Data file not found at: {filepath}\")\n",
-        "        raise FileNotFoundError(f\"No file found at {filepath}\")\n",
-        "\n",
-        "    df = pd.read_csv(filepath)\n",
-        "    logger.info(f\"Raw data loaded successfully: {df.shape[0]} rows, {df.shape[1]} columns\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Drop columns that carry no predictive value.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Raw dataframe.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with unnecessary columns removed.\n",
-        "    \"\"\"\n",
-        "    logger.info(f\"Dropping columns: {config.DROP_COLUMNS}\")\n",
-        "\n",
-        "    # Only drop columns that actually exist in the dataframe\n",
-        "    cols_to_drop = [col for col in config.DROP_COLUMNS if col in df.columns]\n",
-        "    df = df.drop(columns=cols_to_drop)\n",
-        "\n",
-        "    logger.info(f\"Remaining columns: {df.shape[1]}\")\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def fix_total_charges(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Convert TotalCharges from string to float.\n",
-        "\n",
-        "    TotalCharges is stored as object dtype because some rows contain\n",
-        "    blank spaces instead of numbers. These correspond to new customers\n",
-        "    with zero tenure who have never been billed. We replace blanks\n",
-        "    with 0 since that is the business correct value.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Dataframe with TotalCharges as object dtype.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with TotalCharges as float64.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Fixing TotalCharges dtype from object to float\")\n",
-        "\n",
-        "    # Count blank spaces before fixing\n",
-        "    blank_count = df[df['TotalCharges'].str.strip() == '']['TotalCharges'].count()\n",
-        "    logger.info(f\"Found {blank_count} blank TotalCharges values — replacing with 0\")\n",
-        "\n",
-        "    # Replace blank spaces with 0 then convert to float\n",
-        "    df['TotalCharges'] = df['TotalCharges'].str.strip()\n",
-        "    df['TotalCharges'] = df['TotalCharges'].replace('', '0')\n",
-        "    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')\n",
-        "\n",
-        "    # Check if any NaN values remain after conversion\n",
-        "    remaining_nulls = df['TotalCharges'].isnull().sum()\n",
-        "    if remaining_nulls > 0:\n",
-        "        logger.warning(f\"{remaining_nulls} NaN values remain in TotalCharges after conversion\")\n",
-        "        logger.warning(\"Filling remaining NaN values with median\")\n",
-        "        df['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())\n",
-        "    else:\n",
-        "        logger.info(\"TotalCharges conversion successful — no NaN values remaining\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def encode_target(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Convert target column Churn from Yes/No strings to binary 1/0.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Dataframe with Churn as object dtype containing Yes/No.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with Churn as int64 containing 1/0.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Encoding target column: Yes -> 1, No -> 0\")\n",
-        "\n",
-        "    df[config.TARGET_COLUMN] = df[config.TARGET_COLUMN].map({'Yes': 1, 'No': 0})\n",
-        "\n",
-        "    # Verify encoding worked correctly\n",
-        "    unique_values = df[config.TARGET_COLUMN].unique()\n",
-        "    null_count = df[config.TARGET_COLUMN].isnull().sum()\n",
-        "\n",
-        "    logger.info(f\"Target column unique values after encoding: {unique_values}\")\n",
-        "    logger.info(f\"Churn rate: {df[config.TARGET_COLUMN].mean():.2%}\")\n",
-        "\n",
-        "    if null_count > 0:\n",
-        "        logger.error(f\"Found {null_count} NaN values in target after encoding\")\n",
-        "        raise ValueError(f\"Target encoding failed — {null_count} unexpected values found\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def validate_data(df: pd.DataFrame) -> None:\n",
-        "    \"\"\"\n",
-        "    Run basic validation checks on the cleaned dataframe.\n",
-        "    Logs warnings for any issues found but does not stop the pipeline.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Cleaned dataframe to validate.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    None\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Running data validation checks\")\n",
-        "\n",
-        "    # Check 1: Expected number of rows\n",
-        "    if df.shape[0] < 7000:\n",
-        "        logger.warning(f\"Fewer rows than expected: {df.shape[0]} (expected ~7043)\")\n",
-        "\n",
-        "    # Check 2: Check for missing values across all columns\n",
-        "    null_counts = df.isnull().sum()\n",
-        "    cols_with_nulls = null_counts[null_counts > 0]\n",
-        "\n",
-        "    if len(cols_with_nulls) > 0:\n",
-        "        logger.warning(f\"Columns with missing values after cleaning:\")\n",
-        "        for col, count in cols_with_nulls.items():\n",
-        "            logger.warning(f\"  {col}: {count} missing values\")\n",
-        "    else:\n",
-        "        logger.info(\"No missing values found after cleaning\")\n",
-        "\n",
-        "    # Check 3: Verify target column only contains 0 and 1\n",
-        "    valid_target_values = set(df[config.TARGET_COLUMN].unique())\n",
-        "    if not valid_target_values.issubset({0, 1}):\n",
-        "        logger.error(f\"Target column contains unexpected values: {valid_target_values}\")\n",
-        "    else:\n",
-        "        logger.info(\"Target column validation passed\")\n",
-        "\n",
-        "    # Check 4: Check for duplicate rows\n",
-        "    duplicate_count = df.duplicated().sum()\n",
-        "    if duplicate_count > 0:\n",
-        "        logger.warning(f\"Found {duplicate_count} duplicate rows\")\n",
-        "    else:\n",
-        "        logger.info(\"No duplicate rows found\")\n",
-        "\n",
-        "    # Check 5: Verify TotalCharges is now numeric\n",
-        "    if df['TotalCharges'].dtype != 'float64':\n",
-        "        logger.error(f\"TotalCharges dtype is {df['TotalCharges'].dtype} — expected float64\")\n",
-        "    else:\n",
-        "        logger.info(\"TotalCharges dtype validation passed\")\n",
-        "\n",
-        "    logger.info(\"Data validation complete\")\n",
-        "\n",
-        "\n",
-        "def load_and_clean_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Master function that runs the complete data loading and cleaning pipeline.\n",
-        "    This is the main function called by other modules.\n",
-        "\n",
-        "    Steps:\n",
-        "        1. Load raw CSV\n",
-        "        2. Drop unnecessary columns\n",
-        "        3. Fix TotalCharges dtype\n",
-        "        4. Encode target variable\n",
-        "        5. Validate cleaned data\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    filepath : str\n",
-        "        Path to raw CSV file. Defaults to path in config.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Fully cleaned dataframe ready for feature engineering.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"=\" * 60)\n",
-        "    logger.info(\"STARTING DATA LOADING AND CLEANING PIPELINE\")\n",
-        "    logger.info(\"=\" * 60)\n",
-        "\n",
-        "    # Step 1: Load\n",
-        "    df = load_raw_data(filepath)\n",
-        "\n",
-        "    # Step 2: Drop unnecessary columns\n",
-        "    df = drop_unnecessary_columns(df)\n",
-        "\n",
-        "    # Step 3: Fix TotalCharges\n",
-        "    df = fix_total_charges(df)\n",
-        "\n",
-        "    # Step 4: Encode target\n",
-        "    df = encode_target(df)\n",
-        "\n",
-        "    # Step 5: Validate\n",
-        "    validate_data(df)\n",
-        "\n",
-        "    logger.info(\"=\" * 60)\n",
-        "    logger.info(f\"DATA LOADING COMPLETE: {df.shape[0]} rows, {df.shape[1]} columns\")\n",
-        "    logger.info(\"=\" * 60)\n",
-        "\n",
-        "    return df\n",
-        "'''\n",
-        "\n",
-        "# Write data_loader.py to src folder\n",
-        "data_loader_path = os.path.join(PROJECT_PATH, 'src', 'data_loader.py')\n",
-        "\n",
-        "with open(data_loader_path, 'w') as f:\n",
-        "    f.write(data_loader_content)\n",
-        "\n",
-        "print(f\"data_loader.py written successfully to:\")\n",
-        "print(f\"  {data_loader_path}\")"
-      ],
-      "metadata": {
-        "id": "btxtp-51-TLI",
-        "outputId": "de39dc10-7501-412d-cbde-0a2ca4791534",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        }
-      },
-      "execution_count": 15,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "data_loader.py written successfully to:\n",
-            "  /content/drive/MyDrive/telecom_churn_prediction/src/data_loader.py\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "# Verify if the data loader works\n",
-        "# Import and test data_loader\n",
-        "import importlib\n",
-        "import data_loader\n",
-        "importlib.reload(data_loader)\n",
-        "\n",
-        "# Run the full loading pipeline\n",
-        "df_clean = data_loader.load_and_clean_data()\n",
-        "\n",
-        "# Show the result\n",
-        "print(\"\\nCleaned dataframe shape:\", df_clean.shape)\n",
-        "print(\"\\nData types after cleaning:\")\n",
-        "print(df_clean.dtypes)\n",
-        "print(\"\\nFirst 5 rows:\")\n",
-        "display(df_clean.head())\n",
-        "print(\"\\nChurn value counts:\")\n",
-        "print(df_clean['Churn'].value_counts())"
-      ],
-      "metadata": {
-        "id": "zOfdc32aAgXO",
-        "outputId": "da0fff24-83b8-49de-cf96-4ea8ec56b6f9",
-        "colab": {
-          "base_uri": "https://localhost:8080/",
-          "height": 885
-        }
-      },
-      "execution_count": 16,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stderr",
-          "text": [
-            "WARNING:data_loader:Found 22 duplicate rows\n"
-          ]
-        },
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "Cleaned dataframe shape: (7043, 20)\n",
-            "\n",
-            "Data types after cleaning:\n",
-            "gender               object\n",
-            "SeniorCitizen         int64\n",
-            "Partner              object\n",
-            "Dependents           object\n",
-            "tenure                int64\n",
-            "PhoneService         object\n",
-            "MultipleLines        object\n",
-            "InternetService      object\n",
-            "OnlineSecurity       object\n",
-            "OnlineBackup         object\n",
-            "DeviceProtection     object\n",
-            "TechSupport          object\n",
-            "StreamingTV          object\n",
-            "StreamingMovies      object\n",
-            "Contract             object\n",
-            "PaperlessBilling     object\n",
-            "PaymentMethod        object\n",
-            "MonthlyCharges      float64\n",
-            "TotalCharges        float64\n",
-            "Churn                 int64\n",
-            "dtype: object\n",
-            "\n",
-            "First 5 rows:\n"
-          ]
-        },
-        {
-          "output_type": "display_data",
-          "data": {
-            "text/plain": [
-              "   gender  SeniorCitizen Partner Dependents  tenure PhoneService  \\\n",
-              "0  Female              0     Yes         No       1           No   \n",
-              "1    Male              0      No         No      34          Yes   \n",
-              "2    Male              0      No         No       2          Yes   \n",
-              "3    Male              0      No         No      45           No   \n",
-              "4  Female              0      No         No       2          Yes   \n",
-              "\n",
-              "      MultipleLines InternetService OnlineSecurity OnlineBackup  \\\n",
-              "0  No phone service             DSL             No          Yes   \n",
-              "1                No             DSL            Yes           No   \n",
-              "2                No             DSL            Yes          Yes   \n",
-              "3  No phone service             DSL            Yes           No   \n",
-              "4                No     Fiber optic             No           No   \n",
-              "\n",
-              "  DeviceProtection TechSupport StreamingTV StreamingMovies        Contract  \\\n",
-              "0               No          No          No              No  Month-to-month   \n",
-              "1              Yes          No          No              No        One year   \n",
-              "2               No          No          No              No  Month-to-month   \n",
-              "3              Yes         Yes          No              No        One year   \n",
-              "4               No          No          No              No  Month-to-month   \n",
-              "\n",
-              "  PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges  \\\n",
-              "0              Yes           Electronic check           29.85         29.85   \n",
-              "1               No               Mailed check           56.95       1889.50   \n",
-              "2              Yes               Mailed check           53.85        108.15   \n",
-              "3               No  Bank transfer (automatic)           42.30       1840.75   \n",
-              "4              Yes           Electronic check           70.70        151.65   \n",
-              "\n",
-              "   Churn  \n",
-              "0      0  \n",
-              "1      0  \n",
-              "2      1  \n",
-              "3      0  \n",
-              "4      1  "
-            ],
-            "text/html": [
-              "\n",
-              "  <div id=\"df-22e557f2-459c-4248-8505-0a34b9015fba\" class=\"colab-df-container\">\n",
-              "    <div>\n",
-              "<style scoped>\n",
-              "    .dataframe tbody tr th:only-of-type {\n",
-              "        vertical-align: middle;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe tbody tr th {\n",
-              "        vertical-align: top;\n",
-              "    }\n",
-              "\n",
-              "    .dataframe thead th {\n",
-              "        text-align: right;\n",
-              "    }\n",
-              "</style>\n",
-              "<table border=\"1\" class=\"dataframe\">\n",
-              "  <thead>\n",
-              "    <tr style=\"text-align: right;\">\n",
-              "      <th></th>\n",
-              "      <th>gender</th>\n",
-              "      <th>SeniorCitizen</th>\n",
-              "      <th>Partner</th>\n",
-              "      <th>Dependents</th>\n",
-              "      <th>tenure</th>\n",
-              "      <th>PhoneService</th>\n",
-              "      <th>MultipleLines</th>\n",
-              "      <th>InternetService</th>\n",
-              "      <th>OnlineSecurity</th>\n",
-              "      <th>OnlineBackup</th>\n",
-              "      <th>DeviceProtection</th>\n",
-              "      <th>TechSupport</th>\n",
-              "      <th>StreamingTV</th>\n",
-              "      <th>StreamingMovies</th>\n",
-              "      <th>Contract</th>\n",
-              "      <th>PaperlessBilling</th>\n",
-              "      <th>PaymentMethod</th>\n",
-              "      <th>MonthlyCharges</th>\n",
-              "      <th>TotalCharges</th>\n",
-              "      <th>Churn</th>\n",
-              "    </tr>\n",
-              "  </thead>\n",
-              "  <tbody>\n",
-              "    <tr>\n",
-              "      <th>0</th>\n",
-              "      <td>Female</td>\n",
-              "      <td>0</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>1</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No phone service</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Electronic check</td>\n",
-              "      <td>29.85</td>\n",
-              "      <td>29.85</td>\n",
-              "      <td>0</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>1</th>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>34</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>One year</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Mailed check</td>\n",
-              "      <td>56.95</td>\n",
-              "      <td>1889.50</td>\n",
-              "      <td>0</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>2</th>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>2</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Mailed check</td>\n",
-              "      <td>53.85</td>\n",
-              "      <td>108.15</td>\n",
-              "      <td>1</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>3</th>\n",
-              "      <td>Male</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>45</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No phone service</td>\n",
-              "      <td>DSL</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>One year</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Bank transfer (automatic)</td>\n",
-              "      <td>42.30</td>\n",
-              "      <td>1840.75</td>\n",
-              "      <td>0</td>\n",
-              "    </tr>\n",
-              "    <tr>\n",
-              "      <th>4</th>\n",
-              "      <td>Female</td>\n",
-              "      <td>0</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>2</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Fiber optic</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>No</td>\n",
-              "      <td>Month-to-month</td>\n",
-              "      <td>Yes</td>\n",
-              "      <td>Electronic check</td>\n",
-              "      <td>70.70</td>\n",
-              "      <td>151.65</td>\n",
-              "      <td>1</td>\n",
-              "    </tr>\n",
-              "  </tbody>\n",
-              "</table>\n",
-              "</div>\n",
-              "    <div class=\"colab-df-buttons\">\n",
-              "\n",
-              "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-22e557f2-459c-4248-8505-0a34b9015fba')\"\n",
-              "            title=\"Convert this dataframe to an interactive table.\"\n",
-              "            style=\"display:none;\">\n",
-              "\n",
-              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
-              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
-              "  </svg>\n",
-              "    </button>\n",
-              "\n",
-              "  <style>\n",
-              "    .colab-df-container {\n",
-              "      display:flex;\n",
-              "      gap: 12px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert {\n",
-              "      background-color: #E8F0FE;\n",
-              "      border: none;\n",
-              "      border-radius: 50%;\n",
-              "      cursor: pointer;\n",
-              "      display: none;\n",
-              "      fill: #1967D2;\n",
-              "      height: 32px;\n",
-              "      padding: 0 0 0 0;\n",
-              "      width: 32px;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-convert:hover {\n",
-              "      background-color: #E2EBFA;\n",
-              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
-              "      fill: #174EA6;\n",
-              "    }\n",
-              "\n",
-              "    .colab-df-buttons div {\n",
-              "      margin-bottom: 4px;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert {\n",
-              "      background-color: #3B4455;\n",
-              "      fill: #D2E3FC;\n",
-              "    }\n",
-              "\n",
-              "    [theme=dark] .colab-df-convert:hover {\n",
-              "      background-color: #434B5C;\n",
-              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
-              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
-              "      fill: #FFFFFF;\n",
-              "    }\n",
-              "  </style>\n",
-              "\n",
-              "    <script>\n",
-              "      const buttonEl =\n",
-              "        document.querySelector('#df-22e557f2-459c-4248-8505-0a34b9015fba button.colab-df-convert');\n",
-              "      buttonEl.style.display =\n",
-              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
-              "\n",
-              "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-22e557f2-459c-4248-8505-0a34b9015fba');\n",
-              "        const dataTable =\n",
-              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
-              "                                                    [key], {});\n",
-              "        if (!dataTable) return;\n",
-              "\n",
-              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
-              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
-              "          + ' to learn more about interactive tables.';\n",
-              "        element.innerHTML = '';\n",
-              "        dataTable['output_type'] = 'display_data';\n",
-              "        await google.colab.output.renderOutput(dataTable, element);\n",
-              "        const docLink = document.createElement('div');\n",
-              "        docLink.innerHTML = docLinkHtml;\n",
-              "        element.appendChild(docLink);\n",
-              "      }\n",
-              "    </script>\n",
-              "  </div>\n",
-              "\n",
-              "\n",
-              "    </div>\n",
-              "  </div>\n"
-            ],
-            "application/vnd.google.colaboratory.intrinsic+json": {
-              "type": "dataframe",
-              "summary": "{\n  \"name\": \"print(df_clean['Churn']\",\n  \"rows\": 5,\n  \"fields\": [\n    {\n      \"column\": \"gender\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Male\",\n          \"Female\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"SeniorCitizen\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Partner\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Dependents\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tenure\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 21,\n        \"min\": 1,\n        \"max\": 45,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          34\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PhoneService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MultipleLines\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"InternetService\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Fiber optic\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineSecurity\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"OnlineBackup\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"DeviceProtection\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TechSupport\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Yes\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingTV\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"StreamingMovies\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Contract\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"One year\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaperlessBilling\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"No\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"PaymentMethod\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"Electronic check\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"MonthlyCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 15.445573799635934,\n        \"min\": 29.85,\n        \"max\": 70.7,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          56.95\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"TotalCharges\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 969.8243111512518,\n        \"min\": 29.85,\n        \"max\": 1889.5,\n        \"num_unique_values\": 5,\n        \"samples\": [\n          1889.5\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"Churn\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 1,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          1\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
-            }
-          },
-          "metadata": {}
-        },
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "Churn value counts:\n",
-            "Churn\n",
-            "0    5174\n",
-            "1    1869\n",
-            "Name: count, dtype: int64\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "\n",
-        "data_loader_content_v2 = '''\n",
-        "# =============================================================================\n",
-        "# data_loader.py\n",
-        "# Responsible for loading raw data and performing initial cleaning.\n",
-        "# No feature engineering happens here — just getting data into a clean state.\n",
-        "# Version 2: Added duplicate removal step\n",
-        "# =============================================================================\n",
-        "\n",
-        "import logging\n",
-        "import pandas as pd\n",
-        "import numpy as np\n",
-        "import os\n",
-        "import sys\n",
-        "\n",
-        "sys.path.append(os.path.dirname(os.path.abspath(__file__)))\n",
-        "import config\n",
-        "\n",
-        "logging.basicConfig(level=config.LOG_LEVEL, format=config.LOG_FORMAT)\n",
-        "logger = logging.getLogger(__name__)\n",
-        "\n",
-        "\n",
-        "def load_raw_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Load raw CSV data from disk.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    filepath : str\n",
-        "        Path to the raw CSV file. Defaults to path in config.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Raw dataframe exactly as it appears in the CSV.\n",
-        "\n",
-        "    Raises\n",
-        "    ------\n",
-        "    FileNotFoundError\n",
-        "        If the CSV file does not exist at the given path.\n",
-        "    \"\"\"\n",
-        "    logger.info(f\"Loading raw data from: {filepath}\")\n",
-        "\n",
-        "    if not os.path.exists(filepath):\n",
-        "        logger.error(f\"Data file not found at: {filepath}\")\n",
-        "        raise FileNotFoundError(f\"No file found at {filepath}\")\n",
-        "\n",
-        "    df = pd.read_csv(filepath)\n",
-        "    logger.info(f\"Raw data loaded successfully: {df.shape[0]} rows, {df.shape[1]} columns\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Drop columns that carry no predictive value.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Raw dataframe.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with unnecessary columns removed.\n",
-        "    \"\"\"\n",
-        "    logger.info(f\"Dropping columns: {config.DROP_COLUMNS}\")\n",
-        "\n",
-        "    cols_to_drop = [col for col in config.DROP_COLUMNS if col in df.columns]\n",
-        "    df = df.drop(columns=cols_to_drop)\n",
-        "\n",
-        "    logger.info(f\"Remaining columns: {df.shape[1]}\")\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def fix_total_charges(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Convert TotalCharges from string to float.\n",
-        "\n",
-        "    TotalCharges is stored as object dtype because some rows contain\n",
-        "    blank spaces instead of numbers. These correspond to new customers\n",
-        "    with zero tenure who have never been billed. We replace blanks\n",
-        "    with 0 since that is the business correct value.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Dataframe with TotalCharges as object dtype.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with TotalCharges as float64.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Fixing TotalCharges dtype from object to float\")\n",
-        "\n",
-        "    blank_count = df[df[\"TotalCharges\"].str.strip() == \"\"][\"TotalCharges\"].count()\n",
-        "    logger.info(f\"Found {blank_count} blank TotalCharges values — replacing with 0\")\n",
-        "\n",
-        "    df[\"TotalCharges\"] = df[\"TotalCharges\"].str.strip()\n",
-        "    df[\"TotalCharges\"] = df[\"TotalCharges\"].replace(\"\", \"0\")\n",
-        "    df[\"TotalCharges\"] = pd.to_numeric(df[\"TotalCharges\"], errors=\"coerce\")\n",
-        "\n",
-        "    remaining_nulls = df[\"TotalCharges\"].isnull().sum()\n",
-        "    if remaining_nulls > 0:\n",
-        "        logger.warning(f\"{remaining_nulls} NaN values remain in TotalCharges after conversion\")\n",
-        "        logger.warning(\"Filling remaining NaN values with median\")\n",
-        "        df[\"TotalCharges\"] = df[\"TotalCharges\"].fillna(df[\"TotalCharges\"].median())\n",
-        "    else:\n",
-        "        logger.info(\"TotalCharges conversion successful — no NaN values remaining\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Remove duplicate rows from the dataframe.\n",
-        "\n",
-        "    Duplicate rows are customers with identical values across all columns.\n",
-        "    In a real customer dataset this almost certainly indicates data entry\n",
-        "    errors rather than genuinely identical customers.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Dataframe that may contain duplicate rows.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with duplicate rows removed.\n",
-        "        Only the first occurrence of each duplicate is kept.\n",
-        "    \"\"\"\n",
-        "    before = df.shape[0]\n",
-        "    df = df.drop_duplicates(keep=\"first\")\n",
-        "    after = df.shape[0]\n",
-        "    removed = before - after\n",
-        "\n",
-        "    if removed > 0:\n",
-        "        logger.info(f\"Removed {removed} duplicate rows: {before} -> {after} rows\")\n",
-        "    else:\n",
-        "        logger.info(\"No duplicate rows found\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def encode_target(df: pd.DataFrame) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Convert target column Churn from Yes/No strings to binary 1/0.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Dataframe with Churn as object dtype containing Yes/No.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Dataframe with Churn as int64 containing 1/0.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Encoding target column: Yes -> 1, No -> 0\")\n",
-        "\n",
-        "    df[config.TARGET_COLUMN] = df[config.TARGET_COLUMN].map({\"Yes\": 1, \"No\": 0})\n",
-        "\n",
-        "    unique_values = df[config.TARGET_COLUMN].unique()\n",
-        "    null_count = df[config.TARGET_COLUMN].isnull().sum()\n",
-        "\n",
-        "    logger.info(f\"Target column unique values after encoding: {unique_values}\")\n",
-        "    logger.info(f\"Churn rate: {df[config.TARGET_COLUMN].mean():.2%}\")\n",
-        "\n",
-        "    if null_count > 0:\n",
-        "        logger.error(f\"Found {null_count} NaN values in target after encoding\")\n",
-        "        raise ValueError(f\"Target encoding failed — {null_count} unexpected values found\")\n",
-        "\n",
-        "    return df\n",
-        "\n",
-        "\n",
-        "def validate_data(df: pd.DataFrame) -> None:\n",
-        "    \"\"\"\n",
-        "    Run basic validation checks on the cleaned dataframe.\n",
-        "    Logs warnings for any issues found but does not stop the pipeline.\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    df : pd.DataFrame\n",
-        "        Cleaned dataframe to validate.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    None\n",
-        "    \"\"\"\n",
-        "    logger.info(\"Running data validation checks\")\n",
-        "\n",
-        "    # Check 1: Expected number of rows\n",
-        "    if df.shape[0] < 7000:\n",
-        "        logger.warning(f\"Fewer rows than expected: {df.shape[0]} (expected ~7043)\")\n",
-        "\n",
-        "    # Check 2: Check for missing values\n",
-        "    null_counts = df.isnull().sum()\n",
-        "    cols_with_nulls = null_counts[null_counts > 0]\n",
-        "\n",
-        "    if len(cols_with_nulls) > 0:\n",
-        "        logger.warning(\"Columns with missing values after cleaning:\")\n",
-        "        for col, count in cols_with_nulls.items():\n",
-        "            logger.warning(f\"  {col}: {count} missing values\")\n",
-        "    else:\n",
-        "        logger.info(\"No missing values found after cleaning\")\n",
-        "\n",
-        "    # Check 3: Verify target column only contains 0 and 1\n",
-        "    valid_target_values = set(df[config.TARGET_COLUMN].unique())\n",
-        "    if not valid_target_values.issubset({0, 1}):\n",
-        "        logger.error(f\"Target column contains unexpected values: {valid_target_values}\")\n",
-        "    else:\n",
-        "        logger.info(\"Target column validation passed\")\n",
-        "\n",
-        "    # Check 4: Check for remaining duplicates\n",
-        "    duplicate_count = df.duplicated().sum()\n",
-        "    if duplicate_count > 0:\n",
-        "        logger.warning(f\"Found {duplicate_count} duplicate rows remaining\")\n",
-        "    else:\n",
-        "        logger.info(\"No duplicate rows found\")\n",
-        "\n",
-        "    # Check 5: Verify TotalCharges is now numeric\n",
-        "    if df[\"TotalCharges\"].dtype != \"float64\":\n",
-        "        logger.error(f\"TotalCharges dtype is {df['TotalCharges'].dtype} — expected float64\")\n",
-        "    else:\n",
-        "        logger.info(\"TotalCharges dtype validation passed\")\n",
-        "\n",
-        "    logger.info(\"Data validation complete\")\n",
-        "\n",
-        "\n",
-        "def load_and_clean_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:\n",
-        "    \"\"\"\n",
-        "    Master function that runs the complete data loading and cleaning pipeline.\n",
-        "    This is the main function called by other modules.\n",
-        "\n",
-        "    Steps:\n",
-        "        1. Load raw CSV\n",
-        "        2. Drop unnecessary columns\n",
-        "        3. Fix TotalCharges dtype\n",
-        "        4. Remove duplicate rows\n",
-        "        5. Encode target variable\n",
-        "        6. Validate cleaned data\n",
-        "\n",
-        "    Parameters\n",
-        "    ----------\n",
-        "    filepath : str\n",
-        "        Path to raw CSV file. Defaults to path in config.\n",
-        "\n",
-        "    Returns\n",
-        "    -------\n",
-        "    pd.DataFrame\n",
-        "        Fully cleaned dataframe ready for feature engineering.\n",
-        "    \"\"\"\n",
-        "    logger.info(\"=\" * 60)\n",
-        "    logger.info(\"STARTING DATA LOADING AND CLEANING PIPELINE\")\n",
-        "    logger.info(\"=\" * 60)\n",
-        "\n",
-        "    # Step 1: Load\n",
-        "    df = load_raw_data(filepath)\n",
-        "\n",
-        "    # Step 2: Drop unnecessary columns\n",
-        "    df = drop_unnecessary_columns(df)\n",
-        "\n",
-        "    # Step 3: Fix TotalCharges\n",
-        "    df = fix_total_charges(df)\n",
-        "\n",
-        "    # Step 4: Remove duplicates\n",
-        "    df = remove_duplicates(df)\n",
-        "\n",
-        "    # Step 5: Encode target\n",
-        "    df = encode_target(df)\n",
-        "\n",
-        "    # Step 6: Validate\n",
-        "    validate_data(df)\n",
-        "\n",
-        "    logger.info(\"=\" * 60)\n",
-        "    logger.info(f\"DATA LOADING COMPLETE: {df.shape[0]} rows, {df.shape[1]} columns\")\n",
-        "    logger.info(\"=\" * 60)\n",
-        "\n",
-        "    return df\n",
-        "'''\n",
-        "\n",
-        "# Overwrite the previous data_loader.py with the updated version\n",
-        "data_loader_path = os.path.join(PROJECT_PATH, 'src', 'data_loader.py')\n",
-        "\n",
-        "with open(data_loader_path, 'w') as f:\n",
-        "    f.write(data_loader_content_v2)\n",
-        "\n",
-        "print(\"data_loader.py updated successfully!\")"
-      ],
-      "metadata": {
-        "id": "4GuTGBkbCQRW",
-        "outputId": "4a4ea55b-6e51-4408-963e-e48b748cf978",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        }
-      },
-      "execution_count": 19,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "data_loader.py updated successfully!\n"
-          ]
-        }
-      ]
-    },
-    {
-      "cell_type": "code",
-      "source": [
-        "#Verify the fix to remove duplicates\n",
-        "# Reload the updated module\n",
-        "import importlib\n",
-        "import data_loader\n",
-        "importlib.reload(data_loader)\n",
-        "\n",
-        "# Run again\n",
-        "df_clean = data_loader.load_and_clean_data()\n",
-        "\n",
-        "print(\"\\nFinal shape:\", df_clean.shape)\n",
-        "print(\"\\nChurn value counts:\")\n",
-        "print(df_clean['Churn'].value_counts())"
-      ],
-      "metadata": {
-        "id": "HrfWXRK3CmgE",
-        "outputId": "9ec88947-56f3-4776-d375-22bd16fa3a76",
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        }
-      },
-      "execution_count": 20,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "\n",
-            "Final shape: (7021, 20)\n",
-            "\n",
-            "Churn value counts:\n",
-            "Churn\n",
-            "0    5164\n",
-            "1    1857\n",
-            "Name: count, dtype: int64\n"
-          ]
-        }
-      ]
-    }
-  ],
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyMohe14qge2jLRu5XL7JltJ",
-      "include_colab_link": true
-    },
-    "kernelspec": {
-      "display_name": "Python 3",
-      "name": "python3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "nbformat": 4,
-  "nbformat_minor": 0
-}
+
+# =============================================================================
+# data_loader.py
+# Responsible for loading raw data and performing initial cleaning.
+# No feature engineering happens here — just getting data into a clean state.
+# Version 2: Added duplicate removal step
+# =============================================================================
+
+import logging
+import pandas as pd
+import numpy as np
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import config
+
+logging.basicConfig(level=config.LOG_LEVEL, format=config.LOG_FORMAT)
+logger = logging.getLogger(__name__)
+
+
+def load_raw_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:
+    """
+    Load raw CSV data from disk.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the raw CSV file. Defaults to path in config.
+
+    Returns
+    -------
+    pd.DataFrame
+        Raw dataframe exactly as it appears in the CSV.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the CSV file does not exist at the given path.
+    """
+    logger.info(f"Loading raw data from: {filepath}")
+
+    if not os.path.exists(filepath):
+        logger.error(f"Data file not found at: {filepath}")
+        raise FileNotFoundError(f"No file found at {filepath}")
+
+    df = pd.read_csv(filepath)
+    logger.info(f"Raw data loaded successfully: {df.shape[0]} rows, {df.shape[1]} columns")
+
+    return df
+
+
+def drop_unnecessary_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop columns that carry no predictive value.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Raw dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with unnecessary columns removed.
+    """
+    logger.info(f"Dropping columns: {config.DROP_COLUMNS}")
+
+    cols_to_drop = [col for col in config.DROP_COLUMNS if col in df.columns]
+    df = df.drop(columns=cols_to_drop)
+
+    logger.info(f"Remaining columns: {df.shape[1]}")
+    return df
+
+
+def fix_total_charges(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert TotalCharges from string to float.
+
+    TotalCharges is stored as object dtype because some rows contain
+    blank spaces instead of numbers. These correspond to new customers
+    with zero tenure who have never been billed. We replace blanks
+    with 0 since that is the business correct value.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with TotalCharges as object dtype.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with TotalCharges as float64.
+    """
+    logger.info("Fixing TotalCharges dtype from object to float")
+
+    blank_count = df[df["TotalCharges"].str.strip() == ""]["TotalCharges"].count()
+    logger.info(f"Found {blank_count} blank TotalCharges values — replacing with 0")
+
+    df["TotalCharges"] = df["TotalCharges"].str.strip()
+    df["TotalCharges"] = df["TotalCharges"].replace("", "0")
+    df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+
+    remaining_nulls = df["TotalCharges"].isnull().sum()
+    if remaining_nulls > 0:
+        logger.warning(f"{remaining_nulls} NaN values remain in TotalCharges after conversion")
+        logger.warning("Filling remaining NaN values with median")
+        df["TotalCharges"] = df["TotalCharges"].fillna(df["TotalCharges"].median())
+    else:
+        logger.info("TotalCharges conversion successful — no NaN values remaining")
+
+    return df
+
+
+def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove duplicate rows from the dataframe.
+
+    Duplicate rows are customers with identical values across all columns.
+    In a real customer dataset this almost certainly indicates data entry
+    errors rather than genuinely identical customers.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe that may contain duplicate rows.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with duplicate rows removed.
+        Only the first occurrence of each duplicate is kept.
+    """
+    before = df.shape[0]
+    df = df.drop_duplicates(keep="first")
+    after = df.shape[0]
+    removed = before - after
+
+    if removed > 0:
+        logger.info(f"Removed {removed} duplicate rows: {before} -> {after} rows")
+    else:
+        logger.info("No duplicate rows found")
+
+    return df
+
+
+def encode_target(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert target column Churn from Yes/No strings to binary 1/0.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with Churn as object dtype containing Yes/No.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with Churn as int64 containing 1/0.
+    """
+    logger.info("Encoding target column: Yes -> 1, No -> 0")
+
+    df[config.TARGET_COLUMN] = df[config.TARGET_COLUMN].map({"Yes": 1, "No": 0})
+
+    unique_values = df[config.TARGET_COLUMN].unique()
+    null_count = df[config.TARGET_COLUMN].isnull().sum()
+
+    logger.info(f"Target column unique values after encoding: {unique_values}")
+    logger.info(f"Churn rate: {df[config.TARGET_COLUMN].mean():.2%}")
+
+    if null_count > 0:
+        logger.error(f"Found {null_count} NaN values in target after encoding")
+        raise ValueError(f"Target encoding failed — {null_count} unexpected values found")
+
+    return df
+
+
+def validate_data(df: pd.DataFrame) -> None:
+    """
+    Run basic validation checks on the cleaned dataframe.
+    Logs warnings for any issues found but does not stop the pipeline.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Cleaned dataframe to validate.
+
+    Returns
+    -------
+    None
+    """
+    logger.info("Running data validation checks")
+
+    # Check 1: Expected number of rows
+    if df.shape[0] < 7000:
+        logger.warning(f"Fewer rows than expected: {df.shape[0]} (expected ~7043)")
+
+    # Check 2: Check for missing values
+    null_counts = df.isnull().sum()
+    cols_with_nulls = null_counts[null_counts > 0]
+
+    if len(cols_with_nulls) > 0:
+        logger.warning("Columns with missing values after cleaning:")
+        for col, count in cols_with_nulls.items():
+            logger.warning(f"  {col}: {count} missing values")
+    else:
+        logger.info("No missing values found after cleaning")
+
+    # Check 3: Verify target column only contains 0 and 1
+    valid_target_values = set(df[config.TARGET_COLUMN].unique())
+    if not valid_target_values.issubset({0, 1}):
+        logger.error(f"Target column contains unexpected values: {valid_target_values}")
+    else:
+        logger.info("Target column validation passed")
+
+    # Check 4: Check for remaining duplicates
+    duplicate_count = df.duplicated().sum()
+    if duplicate_count > 0:
+        logger.warning(f"Found {duplicate_count} duplicate rows remaining")
+    else:
+        logger.info("No duplicate rows found")
+
+    # Check 5: Verify TotalCharges is now numeric
+    if df["TotalCharges"].dtype != "float64":
+        logger.error(f"TotalCharges dtype is {df['TotalCharges'].dtype} — expected float64")
+    else:
+        logger.info("TotalCharges dtype validation passed")
+
+    logger.info("Data validation complete")
+
+
+def load_and_clean_data(filepath: str = config.RAW_DATA_PATH) -> pd.DataFrame:
+    """
+    Master function that runs the complete data loading and cleaning pipeline.
+    This is the main function called by other modules.
+
+    Steps:
+        1. Load raw CSV
+        2. Drop unnecessary columns
+        3. Fix TotalCharges dtype
+        4. Remove duplicate rows
+        5. Encode target variable
+        6. Validate cleaned data
+
+    Parameters
+    ----------
+    filepath : str
+        Path to raw CSV file. Defaults to path in config.
+
+    Returns
+    -------
+    pd.DataFrame
+        Fully cleaned dataframe ready for feature engineering.
+    """
+    logger.info("=" * 60)
+    logger.info("STARTING DATA LOADING AND CLEANING PIPELINE")
+    logger.info("=" * 60)
+
+    # Step 1: Load
+    df = load_raw_data(filepath)
+
+    # Step 2: Drop unnecessary columns
+    df = drop_unnecessary_columns(df)
+
+    # Step 3: Fix TotalCharges
+    df = fix_total_charges(df)
+
+    # Step 4: Remove duplicates
+    df = remove_duplicates(df)
+
+    # Step 5: Encode target
+    df = encode_target(df)
+
+    # Step 6: Validate
+    validate_data(df)
+
+    logger.info("=" * 60)
+    logger.info(f"DATA LOADING COMPLETE: {df.shape[0]} rows, {df.shape[1]} columns")
+    logger.info("=" * 60)
+
+    return df
